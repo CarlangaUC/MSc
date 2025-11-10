@@ -1,6 +1,6 @@
 # 📘 Proyecto MAGISTER
 
-Este proyecto utiliza **[TdZdd](https://github.com/kunisura/TdZdd)** como librería base para la construcción y manipulación eficiente de **Diagramas de Decisión Cero-Suprimidos (ZDDs)** en C++.
+Este proyecto utiliza **[TdZdd](https://github.com/kunisura/TdZdd)** como librería base para la construcción y manipulación eficiente de **Diagramas de Decisión Cero-Suprimidos (ZDDs)** en C++ (Por ahora).
 
 El código de ejemplo (`test.cpp`) demuestra el flujo de trabajo "Top-Down" de `TdZdd` para construir una familia compleja de conjuntos y asi realizar operaciones y testeos en diversas estructuras posiblemente.
 
