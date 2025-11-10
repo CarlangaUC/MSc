@@ -28,7 +28,7 @@ g++ -std=c++11 -o test test.cpp -I ./TdZdd/include
 
 ## Visualización
 
-Para poder observar los grafos generados emplear la libreria Graphviz que lee el formato dot generado por el codigo (revisar parametros tal que)
+Para poder observar los grafos generados emplear la libreria Graphviz que lee el formato dot generado por el codigo (revisar nombre archivos parametrizados en el codigo)
 
 ```
 dot -Tpng reduced.dot -o reduced.png
