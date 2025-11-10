@@ -21,6 +21,8 @@ sudo apt-get install graphviz
 
 ## Compilación y ejecución
 
+Dado el codigo creado en test, se compila y ejecuta tal que
+
 ```
 g++ -std=c++11 -o test test.cpp -I ./TdZdd/include
 ./test
