@@ -11,7 +11,7 @@
 #include <tdzdd/DdSpecOp.hpp> // Para operaciones sobre la ZDD
 
 // Molde para solo un ZDD
-class PathSpec : public tdzdd::StatelessDdSpec<PathSpec, 2> {
+class PathSpec : public tdzdd::StatelessDdSpec<PathSpec, 2> { // Un DD con 2 aristas, osea un BDD, parametro 2
     int const n_items;
     std::set<int> const path;
 
