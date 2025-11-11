@@ -113,6 +113,83 @@ int main() {
     return 0;
 }
 
+/*
+Flujo para guardar cada ZDD a medida que va creciendo
+int main() {
+    int const N_ITEMS = 6; // Maximo es el 6 
+    
+    std::vector<std::set<int>> datasets = {
+        {6, 5, 4, 3}, {6, 5, 4, 2}, {6, 5, 4, 1}, {6, 5, 4},
+        {6, 5, 2}, {6, 5, 1}, {6, 5}, {6, 4, 3, 2},
+        {6, 4, 3, 1}, {6, 4, 2, 1}, {6, 2, 1}, {3, 2, 1}
+    };
+    int const N = datasets.size();
+    std::cout << " > " << N << " conjuntos definidos." << std::endl;
+
+    std::vector<PathSpec> specs;
+    for (const auto& p : datasets) {
+        specs.push_back(PathSpec(N_ITEMS, p));
+    }
+    std::cout << " > " << specs.size() << " 'moldes' listos." << std::endl;
+
+
+    std::cout << "\n2. Construyendo ZDD inicial con el primer conjunto..." << std::endl;
+    tdzdd::DdStructure<2> dd_creciendo(specs[0]); 
+    dd_creciendo.zddReduce(); 
+
+    std::ofstream file_paso_1("zdd_creciendo_paso_1.dot");
+    dd_creciendo.dumpDot(file_paso_1, "ZDD_Paso_1"); //
+    file_paso_1.close();
+    std::cout << "   > 'zdd_creciendo_paso_1.dot' guardado (Nodos: " << dd_creciendo.size() << ")" << std::endl;
+
+
+    std::cout << "\n3. Uniendo los ZDD restantes paso a paso..." << std::endl;
+    
+    for (size_t i = 1; i < specs.size(); ++i) {
+        std::cout << "   > Uniendo con el conjunto " << (i + 1) << "..." << std::endl;
+
+  
+        auto spec_siguiente_paso = tdzdd::zddUnion(dd_creciendo, specs[i]);
+
+        dd_creciendo = tdzdd::DdStructure<2>(spec_siguiente_paso);
+
+        dd_creciendo.zddReduce();
+
+        std::stringstream ss_filename;
+        ss_filename << "zdd_creciendo_paso_" << (i + 1) << ".dot";
+        std::string filename = ss_filename.str();
+        
+        std::stringstream ss_title;
+        ss_title << "ZDD_Paso_" << (i + 1);
+        std::string title = ss_title.str();
+        
+        std::ofstream dot_file(filename);
+        dd_creciendo.dumpDot(dot_file, title); //
+        dot_file.close();
+
+        std::cout << "     > '" << filename << "' guardado (Nodos: " << dd_creciendo.size() << ")" << std::endl;
+    }
+
+
+    std::cout << "\n4. Evaluación del ZDD final (Paso 12)..." << std::endl;
+    std::cout << "   > Nodos finales: " << dd_creciendo.size() << std::endl;
+    
+    std::cout << "   > Cardinalidad (conteo): " << dd_creciendo.zddCardinality() << std::endl;
+
+    std::cout << "   > Conjuntos encontrados:" << std::endl;
+    for (auto const& s : dd_creciendo) {
+        std::cout << "     { ";
+        for (int item : s) {
+            std::cout << item << " ";
+        }
+        std::cout << "}" << std::endl;
+    }
+
+    std::cout << "\n--- Flujo completo ---" << std::endl;
+    return 0;
+}
+*/
+
 // 0-edge trees y ---- es 0 edge y -> es el 1 edge, el nodo terminal es 1 
 
 
