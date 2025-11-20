@@ -1,4 +1,4 @@
-digraph "ZDD_Reducido" {
+digraph "ZDD_Final" {
   6 [shape=none,label="6"];
   5 [shape=none,label="5"];
   4 [shape=none,label="4"];
@@ -10,7 +10,7 @@ digraph "ZDD_Reducido" {
   4 -> 3 [style=invis];
   3 -> 2 [style=invis];
   2 -> 1 [style=invis];
-  "^" [shape=none,label="ZDD_Reducido"];
+  "^" [shape=none,label="ZDD_Final"];
   "^" -> "6:0" [style=dashed];
   "6:0" [label="6:0"];
   "6:0" -> "3:0" [style=dashed];
