@@ -21,11 +21,22 @@ sudo apt-get install graphviz
 
 ## Compilación y ejecución
 
-Dado el codigo creado en test, se compila y ejecuta tal que
+Dado el codigo creado en test, se compila con:
 
 ```
 g++ -std=c++11 -o test test.cpp -I ./TdZdd/include
-./test
+```
+
+Y se ejecuta considerando dos posibles modos:
+
+- Modo .bin (Usado para benchmark) : 0
+- Modo .txt (Usado para mayor reproducibilidad y creación de test): 1
+
+Si es necesario correr oel script **crear_formato_input.py**, el cual toma un archivo .txt en el formato acordado y lo vuelve .bin!
+
+Por ende se ejecuta con
+```
+./test 0|1
 ```
 
 ## Visualización
@@ -36,4 +47,5 @@ Para poder observar los grafos generados emplear la libreria Graphviz que lee el
 dot -Tpng reduced.dot -o reduced.png
 dot -Tpng unreduced.dot -o unreduced.png
 ```
+
 
