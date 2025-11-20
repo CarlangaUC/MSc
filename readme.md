@@ -32,7 +32,7 @@ Y se ejecuta considerando dos posibles modos:
 - Modo .bin (Usado para benchmark) : 0
 - Modo .txt (Usado para mayor reproducibilidad y creación de test): 1
 
-Si es necesario correr oel script **crear_formato_input.py**, el cual toma un archivo .txt en el formato acordado y lo vuelve .bin!
+Si es necesario correr el script **crear_formato_input.py**, el cual toma un archivo .txt en el formato acordado y lo vuelve .bin!
 
 Por ende se ejecuta con
 ```
