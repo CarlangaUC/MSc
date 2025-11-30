@@ -50,9 +50,13 @@ public:
     }
 };
 
+// Recorrer la ZDD para evaluar los nodos y su cantidad total de bytes CONSIDERANDO la tabla de hash asociada y los nodos con su valor y punteros
+// No se consideran los bytes del contenedor del ZDD y posiblemente de los nodos
+
 
 // Se calculara todo el tamñaño de la ZDD recorriendola, hay que considerar la tabla de hash que es implementada como como una matriz irregular (Jagged Array)
 
+/*
 class MemoryEval : public tdzdd::DdEval<MemoryEval, size_t> {
 public:
     // Terminales: No ocupan memoria dinámica (son 1 o -1)
@@ -73,6 +77,95 @@ public:
 
         // Sumar todo y asignarlo 
         v = memory_children + node_self_size;
+    }
+};
+*/
+
+
+// Gestion eficiente de la RAM! Localidad, cache y asignacion id nodos con unicidad y hash
+
+
+// Canonicidad -> Con NodeTableHandler (Tabla de hash), la cual asigna por Memory Pools (chunks de memoria en vez de cada vez pedir una memoria)
+// No se ocupa punteros sino nodeId
+
+template<int ARITY> // 2 para el ZDD, recordar estamos en BDD
+class MemoryEval {
+private:
+    // Constantes de arquitectura (coonsiderando x64, punteros de 8 bytes)
+    static constexpr size_t WORD_SIZE = sizeof(void*); 
+    
+    // TdZdd usa NodeId para referenciar hijos. Obtenemos su tamaño real de id
+    static constexpr size_t NODE_ID_SIZE = sizeof(tdzdd::NodeId);
+    
+    // Obtiene el tamaño físico real que ocupa un nodo en RAM tras la alineación del compilador
+    static size_t getAlignedNodeSize() {
+
+        // Estructura interna estimada de un nodo TdZdd:
+        // Header: RefCount + Level Index (aprox 4 bytes combinados en implementaciones optimizadas)
+        // Children: Array de ARITY NodeIds
+
+        size_t headerSize = sizeof(int16_t) * 2; // Estimación conservadora del header
+        size_t branchesSize = ARITY * NODE_ID_SIZE;
+        size_t rawSize = headerSize + branchesSize;
+        
+        // Cálculo de Padding (Alineación a 8 bytes en x64)
+        size_t remainder = rawSize % WORD_SIZE;
+        size_t padding = (remainder == 0) ? 0 : (WORD_SIZE - remainder);
+        
+        return rawSize + padding;
+    }
+
+public:
+    /**
+    countTotalBytes
+    Devuelve una estimación de bytes totales.
+     */
+    static size_t countTotalBytes(const tdzdd::DdStructure<ARITY>& dd) {
+        // Nodos Únicos Activos, total nodos
+        size_t activeNodes = dd.size();
+        if (activeNodes == 0) return 0;
+
+        // Memoria Payload (Nodos físicos alineados)
+        size_t nodeSizeBytes = getAlignedNodeSize();
+        size_t payloadMemory = activeNodes * nodeSizeBytes;
+
+        // Overhead del MemoryPool (Fragmentación Interna)
+        // Los pools piden páginas grandes (4KB-2MB). Al final de los bloques 
+        // siempre queda espacio sin usar. Estimación estándar: 5%.
+        double poolFragmentationRate = 0.05;
+        size_t poolOverhead = static_cast<size_t>(payloadMemory * poolFragmentationRate);
+
+        // Overhead de la Tabla Hash (NodeTableHandler)
+        // Para mantener O(1), la tabla hash NUNCA está al 100%. 
+        // TdZdd suele redimensionar cuando el factor de carga > 0.6 o 0.7.
+        // Factor para O(1) mantenerlo con buckets extras, payoff
+        
+        double loadFactor = 0.6; // 60% llena
+        size_t hashCapacity = static_cast<size_t>(activeNodes / loadFactor);
+        
+        // Cada entrada en la hash table mapea un código hash a un NodeId/Índice por este, asegurando unicidad
+        size_t hashEntrySize = sizeof(size_t); 
+        size_t hashTableMemory = hashCapacity * hashEntrySize;
+
+        return payloadMemory + poolOverhead + hashTableMemory;
+    }
+
+
+    static void printReport(const tdzdd::DdStructure<ARITY>& dd) {
+        size_t total = countTotalBytes(dd);
+        size_t nodes = dd.size();
+        size_t alignedSize = getAlignedNodeSize();
+        
+        std::cout << "\n=== Auditoría de Memoria (MemoryEval) ===" << std::endl;
+        std::cout << "Nodos Únicos (Lógicos):" << nodes << std::endl;
+        std::cout << "Tamaño Físico por Nodo:" << alignedSize << " bytes (alineado)" << std::endl;
+        std::cout << "-----------------------------------------" << std::endl;
+        std::cout << "Memoria Total (RAM):   " << total << " bytes" << std::endl;
+        std::cout << "                       " << std::fixed << std::setprecision(2) 
+                  << (total / 1024.0 / 1024.0) << " MB" << std::endl;
+        std::cout << "Eficiencia Real:       " << (nodes > 0 ? (double)total/nodes : 0) 
+                  << " bytes/nodo" << std::endl;
+        std::cout << "=========================================\n" << std::endl;
     }
 };
 
@@ -198,7 +291,7 @@ int main(int argc, char* argv[]) {
 
     std::cout << "Final" << std::endl;
     std::cout << "Total Conjuntos: " << paso << std::endl;
-    std::cout << "Cardinalidad Final: " << dd.zddCardinality() << std::endl;
+    //std::cout << "Cardinalidad Final: " << dd.zddCardinality() << std::endl;
 
     std::cout << "Conjuntos en la ZDD Final:" << std::endl;
     for (auto const& s : dd) {
@@ -215,11 +308,25 @@ int main(int argc, char* argv[]) {
     out_final.close();
     std::cout << "Grafo final guardado en: " << final_dot << std::endl;
 
+
+    std::cout << "Nodos Lógicos: " << dd.size() << std::endl;
+
+    
+    //size_t raw_bytes = dd.evaluate(MemoryEval()); // .evaluate() realiza una evaluacion de abajo hacia arriba procesando un nodo solo una vez
+
+    // 3. Estimación Realista (con tabla hash)
+    // Las tablas hash suelen tener un factor de carga de 0.5 a 0.7 (doble de espacio)
+    //size_t estimated_total_bytes = raw_bytes * 2;
+
+    //std::cout << "Memoria : " << raw_bytes << " bytes" << std::endl;
+    //std::cout << "Memoria Estimada: " << estimated_total_bytes << " bytes" << std::endl;
+
+    MemoryEval<2>::printReport(dd); // En vez de reporte dinamico, calcular
+
     return 0;
 }
 
 // 0-edge trees y ---- es 0 edge y -> es el 1 edge, el nodo terminal es 1 
-
 
 // zddReduce() applies the node sharing rule and the ZDD node deletion rule,
 // which deletes a node when all of its non-zero-labeled outgoing edges point to ⊥.
