@@ -19,6 +19,19 @@ sudo apt-get update
 sudo apt-get install graphviz
 ```
 
+### Creación de test
+
+Para simular conjuntos se puede ejecutar el script **generar_archivo.py** el cual tiene como parametros:
+
+* **`OUTPUT_DIR`**: Define el nombre del directorio donde se almacenarán los resultados (el script lo crea automáticamente si no existe).
+* **`FILENAME`**: Establece el nombre del archivo de salida (por defecto `conjuntos.txt`).
+* **`NUM_SETS`**: Determina la cantidad total de conjuntos (líneas) que se generarán en el archivo.
+* **`U`**: Representa el tamaño del Universo. Los números generados serán enteros aleatorios en el rango $[1, U]$.
+* **`MIN_ITEMS_PER_SET`**: Fija la cantidad mínima de elementos que conformarán un conjunto.
+* **`MAX_ITEMS_PER_SET`**: Fija la cantidad máxima de elementos que conformarán un conjunto.
+
+Lo cual generara un archivo .txt con conjuntos, donde cada línea contiene una lista de enteros únicos (sampleo uniforme sin reemplazo), separados por comas y **ordenados de forma descendente**.
+
 ## Compilación y ejecución
 
 Dado el codigo creado en test, se compila con:

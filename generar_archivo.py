@@ -22,7 +22,7 @@ with open(filepath, "w") as f:
         # Tamaño aleatorio del conjunto
         k = random.randint(MIN_ITEMS_PER_SET, MAX_ITEMS_PER_SET)
         
-        # Sample uniforme
+        # Sampleo uniforme
         items = random.sample(range(1, U + 1), k)
         
         # Ordenar descendente 
@@ -35,4 +35,3 @@ with open(filepath, "w") as f:
             print(f"  Progreso: {i} conjuntos generados...")
 
 print("¡Generación completada!")
-print(f"Ahora ejecuta tu programa C++: ./test 0")
