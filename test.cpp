@@ -16,8 +16,10 @@
 #include <iomanip>   // Para formato de prints
 
 // Para la lectura .bin formato benchmark
-
 #include <cstdint> // Para uint32_t
+
+// TDZDD Utilities para medir recursos y tiempo
+#include <tdzdd/util/ResourceUsage.hpp>
 
 
 // Molde para solo un ZDD, la libreria construye con reglas sabiendo el molde la ZDD
@@ -56,121 +58,76 @@ public:
 
 // Se calculara todo el tamñaño de la ZDD recorriendola, hay que considerar la tabla de hash que es implementada como como una matriz irregular (Jagged Array)
 
-/*
-class MemoryEval : public tdzdd::DdEval<MemoryEval, size_t> {
-public:
-    // Terminales: No ocupan memoria dinámica (son 1 o -1)
-    void evalTerminal(size_t& v, int id) const {
-        v = 0; 
-    }
-
-    // Nodos: Su tanaño es la suma de sus hijos + su propio peso
-    void evalNode(size_t& v, int level, tdzdd::DdValues<size_t, 2> const& values) const {
-        
-        // Memoria de los hijos
-        size_t memory_children = values.get(0) + values.get(1);
-
-        // Calcular el tamaño del nodo en que estmaos
-        // Un nodo ZDD típico tiene: Index (int) + 2 Punteros/IDs (size_t)
-
-        size_t node_self_size = sizeof(int) + 2 * sizeof(size_t); 
-
-        // Sumar todo y asignarlo 
-        v = memory_children + node_self_size;
-    }
-};
-*/
-
-
 // Gestion eficiente de la RAM! Localidad, cache y asignacion id nodos con unicidad y hash
-
 
 // Canonicidad -> Con NodeTableHandler (Tabla de hash), la cual asigna por Memory Pools (chunks de memoria en vez de cada vez pedir una memoria)
 // No se ocupa punteros sino nodeId
 
-template<int ARITY> // 2 para el ZDD, recordar estamos en BDD
-class MemoryEval {
-private:
-    // Constantes de arquitectura (coonsiderando x64, punteros de 8 bytes)
-    static constexpr size_t WORD_SIZE = sizeof(void*); 
+
+// DIAGRAMA MEMORIA
+
+// Tamaño de cada nodo = 2*sizeof(NodeID) (contiene punteros a esos nodos id por eso)
+// Hash table 
+//      Ocupa un memory pool para pedir cierta cantidad de memoria (en vez de malloc/alloc), para conservar localidad de cache y multiplo tal que
+//      Cada entrada de la tabla posee el state asociado a la DD y su nodeID + (posible padding)
+//      Para mantener O(1) en la tabla de hash, esta se puede redimensionar en un factor de
+//      
+
+
+
+// Función auxiliar para estimar memoria de un DdStructure
+template<int ARITY>
+size_t calcularBytesTotales(const tdzdd::DdStructure<ARITY>& zdd) {
+
+    // Numero de nodos reales
     
-    // TdZdd usa NodeId para referenciar hijos. Obtenemos su tamaño real de id
-    static constexpr size_t NODE_ID_SIZE = sizeof(tdzdd::NodeId);
+    size_t numNodes = zdd.size();
     
-    // Obtiene el tamaño físico real que ocupa un nodo en RAM tras la alineación del compilador
-    static size_t getAlignedNodeSize() {
+    size_t sizeNodeId = sizeof(uint64_t); // En la clase maneja eso
+    
+    // Estructura aproximada interna de un nodo en el NodeTableHandler
+    size_t rawNodeSize = (ARITY * sizeNodeId) + sizeof(uint16_t);
+    
+    // Alineación a 8 bytes (palabra de 64 bits)
+    size_t alignedNodeSize = (rawNodeSize + 7) & ~7;
+    
+    // Si la implementación usa padding a 16 bytes para SIMD/Cache:
+    // alignedNodeSize = (alignedNodeSize + 15) & ~15; 
+    // Para TdZdd estándar, 16 bytes es una estimación segura para ARITY=2.
+    if (ARITY == 2) alignedNodeSize = 16;
 
-        // Estructura interna estimada de un nodo TdZdd:
-        // Header: RefCount + Level Index (aprox 4 bytes combinados en implementaciones optimizadas)
-        // Children: Array de ARITY NodeIds
+    // 3. Calcular memoria de datos útiles
+    size_t dataBytes = numNodes * alignedNodeSize;
+    
+    // 4. Estimar overhead del vector contenedor (capacidad vs tamaño)
+    // Los vectores suelen reservar más memoria de la usada.
+    // Asumimos un factor de carga del vector de 1.0 (compactado tras reduce)
+    // o 1.5 si está recién construido.
+    double vectorOverhead = 1.1; 
+    
+    size_t totalBytes = static_cast<size_t>(dataBytes * vectorOverhead);
+    
+    return totalBytes;
+}
 
-        size_t headerSize = sizeof(int16_t) * 2; // Estimación conservadora del header
-        size_t branchesSize = ARITY * NODE_ID_SIZE;
-        size_t rawSize = headerSize + branchesSize;
-        
-        // Cálculo de Padding (Alineación a 8 bytes en x64)
-        size_t remainder = rawSize % WORD_SIZE;
-        size_t padding = (remainder == 0) ? 0 : (WORD_SIZE - remainder);
-        
-        return rawSize + padding;
-    }
+// Ejemplo de uso
+void auditarMemoria(const tdzdd::DdStructure<2>& dd) {
 
-public:
-    /**
-    countTotalBytes
-    Devuelve una estimación de bytes totales.
-     */
-    static size_t countTotalBytes(const tdzdd::DdStructure<ARITY>& dd) {
-        // Nodos Únicos Activos, total nodos
-        size_t activeNodes = dd.size();
-        if (activeNodes == 0) return 0;
-
-        // Memoria Payload (Nodos físicos alineados)
-        size_t nodeSizeBytes = getAlignedNodeSize();
-        size_t payloadMemory = activeNodes * nodeSizeBytes;
-
-        // Overhead del MemoryPool (Fragmentación Interna)
-        // Los pools piden páginas grandes (4KB-2MB). Al final de los bloques 
-        // siempre queda espacio sin usar. Estimación estándar: 5%.
-        double poolFragmentationRate = 0.05;
-        size_t poolOverhead = static_cast<size_t>(payloadMemory * poolFragmentationRate);
-
-        // Overhead de la Tabla Hash (NodeTableHandler)
-        // Para mantener O(1), la tabla hash NUNCA está al 100%. 
-        // TdZdd suele redimensionar cuando el factor de carga > 0.6 o 0.7.
-        // Factor para O(1) mantenerlo con buckets extras, payoff
-        
-        double loadFactor = 0.6; // 60% llena
-        size_t hashCapacity = static_cast<size_t>(activeNodes / loadFactor);
-        
-        // Cada entrada en la hash table mapea un código hash a un NodeId/Índice por este, asegurando unicidad
-        size_t hashEntrySize = sizeof(size_t); 
-        size_t hashTableMemory = hashCapacity * hashEntrySize;
-
-        return payloadMemory + poolOverhead + hashTableMemory;
-    }
-
-
-    static void printReport(const tdzdd::DdStructure<ARITY>& dd) {
-        size_t total = countTotalBytes(dd);
-        size_t nodes = dd.size();
-        size_t alignedSize = getAlignedNodeSize();
-        
-        std::cout << "\n=== Auditoría de Memoria (MemoryEval) ===" << std::endl;
-        std::cout << "Nodos Únicos (Lógicos):" << nodes << std::endl;
-        std::cout << "Tamaño Físico por Nodo:" << alignedSize << " bytes (alineado)" << std::endl;
-        std::cout << "-----------------------------------------" << std::endl;
-        std::cout << "Memoria Total (RAM):   " << total << " bytes" << std::endl;
-        std::cout << "                       " << std::fixed << std::setprecision(2) 
-                  << (total / 1024.0 / 1024.0) << " MB" << std::endl;
-        std::cout << "Eficiencia Real:       " << (nodes > 0 ? (double)total/nodes : 0) 
-                  << " bytes/nodo" << std::endl;
-        std::cout << "=========================================\n" << std::endl;
-    }
-};
+    size_t nodos = dd.size();
+    size_t bytes = calcularBytesTotales(dd);
+    
+    std::cout << "--- Reporte de Memoria ZDD ---" << std::endl;
+    std::cout << "Nodos Lógicos (.size()): " << nodos << std::endl;
+    std::cout << "Memoria Estimada (Bytes): " << bytes << " (" << bytes / 1024.0 << " KB)" << std::endl;
+    std::cout << "Ratio Bytes/Nodo: " << (double)bytes / nodos << std::endl;
+    
+}
 
 
 int main(int argc, char* argv[]) {
+
+
+    tdzdd::ResourceUsage usageStart;
 
     // Si es 0 lectura en .txt si es 1 en formato .bin benchmark
     if (argc < 2) {
@@ -215,6 +172,8 @@ int main(int argc, char* argv[]) {
     tdzdd::DdStructure<2> dd;
     int paso = 0;
 
+    tdzdd::ElapsedTimeCounter zddTimer;
+
     // Lectura
     while (true) {
         std::set<int> current_set;
@@ -256,6 +215,7 @@ int main(int argc, char* argv[]) {
         if (!lectura_exitosa) continue;
         paso++;
 
+        zddTimer.start();
         
         // Crear Molde para ese conjunto
         PathSpec spec(max_val, current_set);
@@ -266,16 +226,18 @@ int main(int argc, char* argv[]) {
         // Reducir (Node Sharing y Node deletion rules)
         dd.zddReduce();
 
+        zddTimer.stop();
+
         // Prints Verticales
         std::cout << "----------------------------" << std::endl;
         std::cout << "PASO " << paso << ":" << std::endl;
-        std::cout << "Conjunto: { ";
+        /*std::cout << "Conjunto: { ";
         for (auto it = current_set.rbegin(); it != current_set.rend(); ++it) {
              std::cout << *it << " ";
         }
         std::cout << "}" << std::endl;
         std::cout << "Nodos:    " << dd.size() << std::endl;
-
+        */
         // Guardar .dot para poder visualizar la zdd
         std::stringstream ss_fname;
         ss_fname << output_dir << "zdd_paso_" << paso << ".dot";
@@ -289,19 +251,38 @@ int main(int argc, char* argv[]) {
     }
     infile.close();
 
+    // Calculamos el uso final usando operadores de TdZdd
+    tdzdd::ResourceUsage usageEnd;
+    tdzdd::ResourceUsage usageDiff = usageEnd - usageStart;
+
+    std::cout << "\n=== REPORTE DE RENDIMIENTO (TdZdd Native) ===" << std::endl;
+
+    std::cout << "Tiempo Real:     " << usageDiff.etime << " s" << std::endl;
+    std::cout << "Tiempo CPU:      " << usageDiff.utime << " s" << std::endl;
+    std::cout << "PICO MEMORIA:    " << usageDiff.maxrss << " KB" << std::endl;
+
+
+    double zddSeconds = zddTimer; 
+    std::cout << "Tiempo Algoritmo ZDD: " << zddSeconds << " s" << std::endl;
+    std::cout << "---------------------------------------------" << std::endl;
+    std::cout << "\n";
+
     std::cout << "Final" << std::endl;
     std::cout << "Total Conjuntos: " << paso << std::endl;
     //std::cout << "Cardinalidad Final: " << dd.zddCardinality() << std::endl;
 
-    std::cout << "Conjuntos en la ZDD Final:" << std::endl;
+    /*std::cout << "Conjuntos en la ZDD Final:" << std::endl;
     for (auto const& s : dd) {
         std::cout << "  { ";
         for (auto it = s.rbegin(); it != s.rend(); ++it) {
             std::cout << *it << " ";
         }
         std::cout << "}" << std::endl;
-    }
-    
+    }*/
+
+    auditarMemoria(dd);
+
+
     std::string final_dot = output_dir + "zdd_final.dot";
     std::ofstream out_final(final_dot);
     dd.dumpDot(out_final, "ZDD_Final");
@@ -310,19 +291,7 @@ int main(int argc, char* argv[]) {
 
 
     std::cout << "Nodos Lógicos: " << dd.size() << std::endl;
-
     
-    //size_t raw_bytes = dd.evaluate(MemoryEval()); // .evaluate() realiza una evaluacion de abajo hacia arriba procesando un nodo solo una vez
-
-    // 3. Estimación Realista (con tabla hash)
-    // Las tablas hash suelen tener un factor de carga de 0.5 a 0.7 (doble de espacio)
-    //size_t estimated_total_bytes = raw_bytes * 2;
-
-    //std::cout << "Memoria : " << raw_bytes << " bytes" << std::endl;
-    //std::cout << "Memoria Estimada: " << estimated_total_bytes << " bytes" << std::endl;
-
-    MemoryEval<2>::printReport(dd); // En vez de reporte dinamico, calcular
-
     return 0;
 }
 
