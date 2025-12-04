@@ -148,57 +148,9 @@ namespace ZddAudit {
 }
 
 // Wrapper para imprimir
+*/
 
-void imprimirAuditoria(const tdzdd::DdStructure<2>& dd) {
 
-        ZddAudit::MemoryStats s = ZddAudit::auditarMemoria(dd);
-        
-        // Para KB y comparar con el peak de la libreria nativa
-        double totalKB = s.totalBytes / 1024.0;
-        double efficiency = (dd.size() > 0) ? (double)s.totalBytes / dd.size() : 0.0;
-
-        std::cout << "\n=== [ZddAudit] Inspección Física de Memoria ===" << std::endl;
-        std::cout << "Nodos Lógicos:          " << dd.size() << std::endl;
-        std::cout << "Niveles (Variables):    " << dd.topLevel() << std::endl;
-        std::cout << "------------------------------------------------" << std::endl;
-        std::cout << "1. Payload (Nodos):     " << s.payloadBytes << " B" << std::endl;
-        std::cout << "2. Vectores (Headers):  " << s.vectorHeadersBytes << " B" << std::endl;
-        std::cout << "3. Terminales (Nvl 0):  " << s.terminalsBytes << " B" << std::endl;
-        std::cout << "4. Indices (Lazy Est):  " << s.indexingOverhead << " B" << std::endl;
-        std::cout << "------------------------------------------------" << std::endl;
-        std::cout << "TOTAL REAL:             " << s.totalBytes << " Bytes" << std::endl;
-        // IMPRESIÓN EN KB
-        std::cout << "                        " << std::fixed << std::setprecision(3) << totalKB << " KB" << std::endl;
-        std::cout << "Ratio:                  " << efficiency << " bytes/nodo" << std::endl;
-        std::cout << "================================================" << std::endl;
-        
-}
-
-void imprimirReporte(const tdzdd::DdStructure<2>& dd) {
-    ZddAudit::MemoryStats s = ZddAudit::auditarMemoria(dd);
-    
-    double totalKB = s.totalBytes / 1024.0;
-    
-    std::cout << "\n=== Auditoría de Memoria Estructural (TdZdd) ===" << std::endl;
-    std::cout << "Nodos (Lógicos):       " << dd.size() << std::endl;
-    std::cout << "Niveles (Vars):        " << dd.topLevel() << std::endl;
-    std::cout << "----------------------------------------------" << std::endl;
-    
-    std::cout << " [1] Nodos Físicos:    " << s.nodesBytes << " bytes" << std::endl;
-    
-    std::cout << " [2] Estructura Vector:" << s.vectorHeadersBytes << " bytes" << std::endl;
-    
-    std::cout << " [3] Índices (Lazy):   " << s.indexingBytes << " bytes" << std::endl;
-    
-    std::cout << "----------------------------------------------" << std::endl;
-    
-    std::cout << " TOTAL ESTIMADO:       " << s.totalBytes << " bytes (" 
-              << std::fixed << std::setprecision(2) << totalKB << " KB)" << std::endl;
-    
-    double ratio = (dd.size() > 0) ? (double)s.totalBytes / dd.size() : 0.0;
-    std::cout << " Bytes por Nodo:       " << ratio << std::endl;
-    std::cout << "==============================================" << std::endl;
-}*/
 
 namespace ZddAudit {
 
