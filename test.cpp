@@ -73,175 +73,139 @@ public:
 //      Para mantener O(1) en la tabla de hash, esta se puede redimensionar en un factor de 0.75 como esta en el codigo de MyHashTable.hpp
 //      
 
-
-/*
 // Ingenieria inversa basandonos en seguir todo el flujo, entender clases y DdStructure como base y asociado
-namespace ZddAudit {
+// Saber como acceder a atributos, algunos son privados
+// Al llamar ciertos metodos, por ejemplo reduce(), se crea un DdReduce y este se elimina en la pila asociada al metodo cuando acaba, compilador se encarga de eso
 
-    struct MemoryStats {
-        size_t totalBytes;          // Total Sumado
-        size_t nodeVectorPayload;   // Bytes dentro de los arrays de nodos (capacity)
-        size_t nodeVectorHeaders;   // Bytes de las cabeceras de los vectores
-        size_t auxIndexBytes;       // Bytes de tablas auxiliares (si existen)
-        size_t structureOverhead;   // Bytes de los objetos Handler/Entity
-    };
-
-    template <int ARITY>
-    MemoryStats auditarMemoria(const tdzdd::DdStructure<ARITY>& dd) {
-        MemoryStats stats = {0, 0, 0, 0};
-
-        size_t activeNodes = dd.size();
-        int numNiveles = dd.topLevel();
-
-        const size_t SIZE_VECTOR_HEADER = 24; // Ocupa 3 punteros, c/u 8 bytes
-        const size_t SIZE_NODE = ARITY * 8; //NodeId es uint64_t, por ende 8 bytes por la aridad
-
-        stats.nodesBytes = (activeNodes + 2) * SIZE_NODE;
-
-
-        size_t numFilas = numNiveles + 1;
-        size_t masterVectors = 3 * SIZE_VECTOR_HEADER; 
-        size_t rowVectors = 3 * numFilas * SIZE_VECTOR_HEADER;
-
-
-        stats.vectorHeadersBytes = masterVectors + rowVectors;
-
-        stats.indexingBytes = 0;
-        stats.totalBytes = stats.nodesBytes 
-                         + stats.vectorHeadersBytes 
-                         + stats.indexingBytes
-                         + sizeof(dd); // El objeto DdStructure (root + handler)
-
-        return stats;
-
-        /*
-        // Alinear los bytes, extra o no
-
-        size_t alignedNodeSize = (rawNodeSize + 7) & ~7;
-        if (ARITY == 2) alignedNodeSize = 16; // Optimización binaria exacta
-
-        stats.payloadBytes = activeNodes * alignedNodeSize;
-
-        // NodeTableEntity
-        stats.vectorHeadersBytes += SIZEOF_MYVECTOR; 
-
-        // Vectores Fila (Uno por cada nivel, incluyendo el 0)
-        stats.vectorHeadersBytes += (numNiveles + 1) * SIZEOF_MYVECTOR;
-        stats.terminalsBytes = 2 * alignedNodeSize;
-
-        // El lower y high table vectores mutable
-        stats.indexingOverhead += 2 * SIZEOF_MYVECTOR; 
-        stats.indexingOverhead += 2 * (numNiveles + 1) * SIZEOF_MYVECTOR;
-
-        // Estimación conservadora del contenido de los índices (promedio 2 ints por nivel)
-        stats.indexingOverhead += 2 * (numNiveles + 1) * 2 * sizeof(int);
-
-
-        stats.totalBytes = stats.payloadBytes 
-                         + stats.vectorHeadersBytes 
-                         + stats.terminalsBytes 
-                         + stats.indexingOverhead
-                         + sizeof(dd); // El objeto DdStructure en sí (puntero + root)
-
-        return stats;
-    }
-}
-
-// Wrapper para imprimir
-*/
-
-
+// Heap (Memoria grande) y Stack (Memoria pequeña)
 
 namespace ZddAudit {
 
     struct MemoryStats {
-        size_t totalBytes;          // Total Sumado
-        size_t nodeVectorPayload;   // Bytes dentro de los arrays de nodos (capacity)
-        size_t nodeVectorHeaders;   // Bytes de las cabeceras de los vectores
-        size_t auxIndexBytes;       // Bytes de tablas auxiliares (si existen)
-        size_t structureOverhead;   // Bytes de los objetos Handler/Entity
+        size_t totalBytes;          // Suma Total Absoluta
+        
+        // Desglose
+        size_t nodePayload;         // Heap: Nodos ZDD reales (Node<Arity>)
+        size_t indexPayload;        // Heap: Índices de niveles (int) en higher/lower
+        size_t vectorHeaders;       // Heap/Stack: Cabeceras de los MyVector (esqueleto)
+        size_t classOverhead;       // Heap: Estructuras fijas (Handler::Object, Entity)
     };
 
     /**
-     * @brief Auditoría Profunda (Deep Traversal).
-     * Recorre cada nivel (fila) de la tabla y pregunta su capacidad real.
+     * @brief Auditoría Profunda basada en la jerarquía exacta de TdZdd.
      */
     template <int ARITY>
     MemoryStats auditarMemoria(const tdzdd::DdStructure<ARITY>& dd) {
         MemoryStats stats = {0, 0, 0, 0, 0};
 
-        // 1. Acceder a las entrañas
-        // getDiagram() devuelve el Handler. El operador -> devuelve la Entity (DataTable).
-        const auto& handler = dd.getDiagram();
-        const auto& entity = *handler; // Desreferenciar para obtener la tabla física
+        // Acceder a los atributos de la dd
 
-        // 2. Estructuras Base
-        stats.structureOverhead += sizeof(dd);      // DdStructure (root + handler)
-        stats.structureOverhead += sizeof(handler); // NodeTableHandler (puntero)
-        stats.structureOverhead += sizeof(entity);  // NodeTableEntity (vectores maestros)
-
-        // 3. Recorrer los Niveles (Vectores de Nodos)
-        // entity.numRows() devuelve N+1 (Niveles 1..N + Terminales 0)
-        int rows = entity.numRows();
+        // DdStructure contiene un NodeTableHandler 'diagram'
+        const auto& handler = dd.getDiagram(); // Nos da el puntero al diagrama
+        const auto& entity = *handler; // Desreferenciar para obtener el objeto         
         
-        for (int i = 0; i < rows; ++i) {
-            // Accedemos al MyVector<Node> del nivel 'i'
+        int numRows = entity.numRows(); // Cantidad de niveles (Filas del diagrama)
+
+        // Cálculo del Overhead Fijo de Clases (Estructura)
+        
+        // A. DdStructure (Stack): handler (ptr) + root (8B) + useMP (bool) + padding
+        size_t sizeStructure = sizeof(dd);
+
+        // B. NodeTableHandler::Object (Heap)
+
+        // Planteamiento
+        // Estructura interna: { unsigned refCount; NodeTableEntity entity; }
+        // NodeTableEntity hereda de DataTable (1 MyVector) + tiene 2 MyVector (higher/lower).
+        // Total vectores en Entity = 3.
+        // Size MyVector = 24 bytes (capacity 8 + size 8 + ptr 8).
+        // Size Entity = 3 * 24 = 72 bytes.
+        // Size Object = 4 (ref) + 4 (padding) + 72 (Entity) = ~80 bytes.
+        
+        size_t sizeEntity = sizeof(tdzdd::NodeTableEntity<ARITY>); // ~72 bytes
+        size_t sizeRef = sizeof(unsigned); // 4 bytes
+
+        // Alineación a 8 bytes (común en x64), mas profundo
+
+        size_t sizeObjectHeap = sizeRef + sizeEntity; 
+        if (sizeObjectHeap % 8 != 0) sizeObjectHeap += (8 - (sizeObjectHeap % 8));
+
+        stats.classOverhead = sizeStructure + sizeObjectHeap;
+
+        
+        // Cálculo de Cabeceras de Vectores (El Esqueleto)
+
+        // NodeTableEntity tiene 3 vectores MAESTROS:
+        // 1. table (DataTable) -> Vector de vectores de Nodos por heredencia
+        // 2. higherLevelTable  -> Vector de vectores de Ints propio
+        // 3. lowerLevelTable   -> Vector de vectores de Ints propio
+        
+        // Cada uno de estos vectores maestros tiene 'numRows' elementos.
+        // Cada elemento es, a su vez, un objeto MyVector (una cabecera de 24 bytes).
+        
+        size_t sizeMyVectorHeader = sizeof(tdzdd::MyVector<int>); // 24 bytes
+        
+        // Total cabeceras = (Filas de Nodos) + (Filas de Higher) + (Filas de Lower)
+        stats.vectorHeaders = (numRows * sizeMyVectorHeader) * 3;
+
+
+        // Cálculo del Payload (Datos en Heap)
+        
+        // Nodos ZDD (NodeTableEntity -> table)
+        // entity[i] retorna una referencia al MyVector<Node> de esa fila
+
+        for (int i = 0; i < numRows; ++i) {
             const auto& rowVector = entity[i];
-
-            // A. Payload Real (Capacity):
-            // capacity() nos dice cuánta RAM pidió el vector, incluyendo lo que no usa.
-            // sizeof(tdzdd::Node<ARITY>) es 16 bytes (en binario).
-            size_t rowBytes = rowVector.capacity() * sizeof(tdzdd::Node<ARITY>);
-            stats.nodeVectorPayload += rowBytes;
-
-            // B. Cabecera del Vector:
-            // Cada fila es un objeto MyVector independiente (24 bytes).
-            stats.nodeVectorHeaders += sizeof(rowVector);
+            // Multiplicamos capacidad real por 16 bytes (Node<2>)
+            stats.nodePayload += rowVector.capacity() * sizeof(tdzdd::Node<ARITY>);
         }
 
-        // 4. Recorrer Índices Auxiliares (Higher/Lower Levels)
-        // Nota: TdZdd genera estos índices bajo demanda (Lazy).
-        // Si los accedemos con 'higherLevels(i)', forzamos su creación si no existen.
-        // Para no alterar el objeto (auditoría pasiva), solo medimos si 'capacity' > 0
-        // accediendo a través de métodos const si fuera posible, pero TdZdd oculta
-        // los vectores 'higherLevelTable' privados.
-        //
-        // Sin embargo, sabemos que están dentro de 'NodeTableEntity'.
-        // Si no podemos iterarlos directamente sin ser 'friend', asumimos 0 
-        // o el costo base de sus cabeceras (ya sumado en sizeof(entity)).
-        // (En una implementación estricta sin modificar la librería, esta parte es opaca).
-        stats.auxIndexBytes = 0; 
+        // BÍndices (higherLevelTable y lowerLevelTable)
+        // Estos son MyVector<int>. Accedemos vía métodos públicos que retornan const&.
+        // Nota: Si los índices no existen, TdZdd los crea (Lazy), pero para auditar la memoria
+        // potencial total, es correcto medirlos.
 
-        // 5. Totalización
-        stats.totalBytes = stats.nodeVectorPayload + 
-                           stats.nodeVectorHeaders + 
-                           stats.auxIndexBytes + 
-                           stats.structureOverhead;
+        for (int i = 0; i < numRows; ++i) {
+            const auto& highVec = entity.higherLevels(i); 
+            stats.indexPayload += highVec.capacity() * sizeof(int);
+
+            const auto& lowVec = entity.lowerLevels(i);
+            stats.indexPayload += lowVec.capacity() * sizeof(int);
+        }
+
+        stats.totalBytes = stats.nodePayload + 
+                           stats.indexPayload + 
+                           stats.vectorHeaders + 
+                           stats.classOverhead;
 
         return stats;
     }
 }
 
 // Wrapper para imprimir
+
 void imprimirReporte(const tdzdd::DdStructure<2>& dd) {
     ZddAudit::MemoryStats s = ZddAudit::auditarMemoria(dd);
     
     double totalKB = s.totalBytes / 1024.0;
+    double totalMB = totalKB / 1024.0;
     
-    // Calculamos eficiencia real (Bytes ocupados / Nodos útiles)
+    // Eficiencia: Cuántos bytes gasta el sistema para guardar 1 nodo lógico, repensar probablemente
     double bytesPerNode = (dd.size() > 0) ? (double)s.totalBytes / dd.size() : 0.0;
 
     std::cout << "\n=== Auditoría PROFUNDA de Memoria (Traversal) ===" << std::endl;
-    std::cout << "Nodos Lógicos (.size):   " << dd.size() << std::endl;
-    std::cout << "Filas Físicas (Levels):  " << dd.getDiagram()->numRows() << std::endl;
+    std::cout << "Nodos Lógicos (dd.size): " << dd.size() << std::endl;
+    std::cout << "Niveles Físicos (Rows):  " << dd.getDiagram()->numRows() << std::endl;
     std::cout << "-------------------------------------------------" << std::endl;
-    std::cout << " [1] Nodos (Capacity):   " << s.nodeVectorPayload << " B  (Memoria reservada)" << std::endl;
-    std::cout << " [2] Headers Vectores:   " << s.nodeVectorHeaders << " B  (Estructura C++)" << std::endl;
-    std::cout << " [3] Overhead Clase:     " << s.structureOverhead << " B" << std::endl;
+    std::cout << " [1] Nodos ZDD (Datos):  " << s.nodePayload << " B" << std::endl;
+    std::cout << " [2] Índices (Ints):     " << s.indexPayload << " B (Higher/Lower Tables)" << std::endl;
+    std::cout << " [3] Headers Vectores:   " << s.vectorHeaders << " B (Esqueleto MyVector)" << std::endl;
+    std::cout << " [4] Overhead Clases:    " << s.classOverhead << " B" << std::endl;
     std::cout << "-------------------------------------------------" << std::endl;
     std::cout << " TOTAL FÍSICO:           " << s.totalBytes << " Bytes" << std::endl;
     std::cout << "                         " << std::fixed << std::setprecision(2) << totalKB << " KB" << std::endl;
-    std::cout << " Eficiencia Real:        " << bytesPerNode << " bytes/nodo" << std::endl;
+    std::cout << "                         " << std::fixed << std::setprecision(2) << totalMB << " MB" << std::endl;
+    std::cout << "-------------------------------------------------" << std::endl;
+    std::cout << " Costo Real:             " << bytesPerNode << " bytes/nodo" << std::endl;
     std::cout << "=================================================" << std::endl;
 }
 
