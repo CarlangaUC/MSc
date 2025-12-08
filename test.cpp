@@ -229,7 +229,7 @@ int main(int argc, char* argv[]) {
 
     // Debug de los modos
     if (modo == 0) {
-        input_path = "archivos_test/conjuntos_2.txt";
+        input_path = "archivos_test/conjuntos.txt";
         infile.open(input_path); // Modo texto por defecto
         std::cout << "MODO SELECCIONADO: 0 (Texto)" << std::endl;
     } else {
@@ -259,7 +259,7 @@ int main(int argc, char* argv[]) {
 
     tdzdd::ElapsedTimeCounter zddTimer;
 
-    std::string log_file_path = output_dir + "memoria_log_2.csv"; // Archivo de log
+    std::string log_file_path = output_dir + "memoria_log.csv"; // Archivo de log
     std::ofstream logFile(log_file_path);
     logFile << "Paso,Nodos_QZDD,Bytes_QZDD,KB_QZDD,Nodos_ZDD,Bytes_ZDD,KB_ZDD\n";
 
@@ -387,7 +387,7 @@ int main(int argc, char* argv[]) {
     //imprimirAuditoria(dd);
     imprimirReporte(dd);
 
-    std::string final_dot = output_dir + "zdd_final_2.dot";
+    std::string final_dot = output_dir + "zdd_final.dot";
     std::ofstream out_final(final_dot);
     dd.dumpDot(out_final, "ZDD_Final");
     out_final.close();
