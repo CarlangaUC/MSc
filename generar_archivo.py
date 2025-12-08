@@ -2,7 +2,7 @@ import random
 import os
 
 OUTPUT_DIR = "archivos_test"
-FILENAME = "conjuntos.txt"  
+FILENAME = f"{input("Ingrese el nombre del archivo final: ")}.txt" # Ejemplo "conjuntos.txt" 
 NUM_SETS = 1000           
 U = 100           # Universo(del 1 al 100)
 MIN_ITEMS_PER_SET = 5       # Mínimo de elementos por fila

@@ -64,8 +64,10 @@ def convertir_txt_a_bin(input_path, output_path):
     print("¡Archivo binario generado exitosamente!")
 
 
-ruta_txt = os.path.join("archivos_test", "conjuntos.txt")
+nombre_archivo = input("Ingrese el nombre del archivo final convertido ya sea binario o .txt: ") # Ejemplo: "conjuntos"
 
-ruta_bin = os.path.join("archivos_test", "conjuntos.bin")
+ruta_txt = os.path.join("archivos_test", f"{nombre_archivo}.txt")
+
+ruta_bin = os.path.join("archivos_test", f"{nombre_archivo}.bin")
 
 convertir_txt_a_bin(ruta_txt, ruta_bin)
