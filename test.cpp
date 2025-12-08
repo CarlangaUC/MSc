@@ -259,6 +259,10 @@ int main(int argc, char* argv[]) {
 
     tdzdd::ElapsedTimeCounter zddTimer;
 
+    std::string log_file_path = output_dir + "memoria_log.csv"; // Archivo de log
+    std::ofstream logFile(log_file_path);
+    logFile << "Paso,Nodos_QZDD,Bytes_QZDD,KB_QZDD,Nodos_ZDD,Bytes_ZDD,KB_ZDD\n";
+
     // Lectura
     while (true) {
         std::set<int> current_set;
@@ -307,11 +311,24 @@ int main(int argc, char* argv[]) {
 
         // Union al ZDD acumulado (Operacion Dinamica)
         dd = tdzdd::DdStructure<2>(tdzdd::zddUnion(dd, spec));
+        
+
+        //Size pre-reduccion ZDD
+        ZddAudit::MemoryStats statPre = ZddAudit::auditarMemoria(dd);
+        size_t nodosPre = dd.size();
 
         // Reducir (Node Sharing y Node deletion rules)
         dd.zddReduce();
+        
+        //Size post-reduccion ZDD
+        ZddAudit::MemoryStats statPost = ZddAudit::auditarMemoria(dd);
+        size_t nodosPost = dd.size();
 
         zddTimer.stop();
+
+        logFile << paso << "," 
+                << nodosPre << "," << statPre.totalBytes << "," << (statPre.totalBytes/1024.0) << ","
+                << nodosPost << "," << statPost.totalBytes << "," << (statPost.totalBytes/1024.0) << "\n";
 
         // Prints Verticales
         std::cout << "----------------------------" << std::endl;
@@ -336,6 +353,7 @@ int main(int argc, char* argv[]) {
         */
     }
     infile.close();
+    logFile.close();
 
     // Calculamos el uso final usando operadores de TdZdd
     tdzdd::ResourceUsage usageEnd;
