@@ -54,11 +54,12 @@ Por ende se ejecuta con
 
 ## Visualización
 
-Para poder observar los grafos generados emplear la libreria Graphviz que lee el formato dot generado por el codigo (revisar nombre archivos parametrizados en el codigo)
+Para poder observar los grafos generados emplear la libreria Graphviz que lee el formato dot generado por el codigo (revisar nombre archivos parametrizados en el codigo), ir a la carpeta asociada y correr el comando dependiendo:
 
 ```
 dot -Tpng reduced.dot -o reduced.png
 dot -Tpng unreduced.dot -o unreduced.png
 ```
+## Analisis tamaño
 
-
+Se implemento un cuaderno en **grafico.ipynb** el cual analiza y genera diversos graficos comparando lo creado por **test.cpp** en torno al tamaño de la DD (revisar especificaciones) v/s reducirla a ZDD, revisar para comparación y verificación empirica de resultados y analisis de datos.
