@@ -189,7 +189,7 @@ void imprimirReporte(const tdzdd::DdStructure<2>& dd) {
     double totalKB = s.totalBytes / 1024.0;
     double totalMB = totalKB / 1024.0;
     
-    // Eficiencia: Cuántos bytes gasta el sistema para guardar 1 nodo lógico, repensar probablemente
+    // Eficiencia: Cuántos bytes gasta el sistema para guardar 1 nodo lógico, repensar probablemente IMPTE
     double bytesPerNode = (dd.size() > 0) ? (double)s.totalBytes / dd.size() : 0.0;
 
     std::cout << "\n=== Auditoría PROFUNDA de Memoria (Traversal) ===" << std::endl;
