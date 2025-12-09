@@ -165,10 +165,10 @@ namespace ZddAudit {
         // potencial total, es correcto medirlos.
 
         for (int i = 0; i < numRows; ++i) {
-            const auto& highVec = entity.higherLevels(i); 
+            const auto& highVec = entity.higherLevels(i); // Al llamarla se crearan dado el metodo, hay que tener ojo si no existen, PEOR CASO
             stats.indexPayload += highVec.capacity() * sizeof(int);
 
-            const auto& lowVec = entity.lowerLevels(i);
+            const auto& lowVec = entity.lowerLevels(i); // Al llamarla se crearan dado el metodo, hay que tener ojo si no existen, PEOR CASO
             stats.indexPayload += lowVec.capacity() * sizeof(int);
         }
 
@@ -261,8 +261,8 @@ int main(int argc, char* argv[]) {
 
     std::string log_file_path = output_dir + "memoria_log.csv"; // Archivo de log
     std::ofstream logFile(log_file_path);
-    logFile << "Paso,Nodos_QZDD,Bytes_QZDD,KB_QZDD,Nodos_ZDD,Bytes_ZDD,KB_ZDD\n";
-
+    logFile << "Paso,Nodos_DD,Bytes_DD,KB_DD,Nodos_ZDD,Bytes_ZDD,KB_ZDD,Peak_Mem_KB\n";
+    
     // Lectura
     while (true) {
         std::set<int> current_set;
@@ -326,9 +326,14 @@ int main(int argc, char* argv[]) {
 
         zddTimer.stop();
 
+        // Capturar el Peak de Memoria (MaxRSS) actual con la util 
+        tdzdd::ResourceUsage usageCurrent;
+        long peakMemKB = usageCurrent.maxrss;
+
         logFile << paso << "," 
                 << nodosPre << "," << statPre.totalBytes << "," << (statPre.totalBytes/1024.0) << ","
-                << nodosPost << "," << statPost.totalBytes << "," << (statPost.totalBytes/1024.0) << "\n";
+                << nodosPost << "," << statPost.totalBytes << "," << (statPost.totalBytes/1024.0) << ","
+                << peakMemKB << "\n";
 
         // Prints Verticales
         std::cout << "----------------------------" << std::endl;
@@ -407,3 +412,8 @@ int main(int argc, char* argv[]) {
 // Diferencia con el paper es que el codigo actual aplica el node-sharing y el node deletion rules,
 // pero faltan las flags y cambiarlo a que el nodo terminal sea 0 y no 1, asi se comprime mas (de 12 nodos del ejemplo a 10 del paper)
 // Osea que falta la regla ZDD + 0-element edges, la ultima regla de compactación entonces
+
+
+
+
+// LA dd como tal tiene involucrada ya el node-sharing para garantizar unicidad por la tabla (Node Sharing por ende) IMPTE
