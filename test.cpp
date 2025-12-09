@@ -23,7 +23,7 @@
 
 
 // Molde para solo un ZDD, la libreria construye con reglas sabiendo el molde la ZDD
-class PathSpec : public tdzdd::StatelessDdSpec<PathSpec, 2> { // Un DD con 2 aristas, osea un BDD, parametro 2
+class PathSpec : public tdzdd::StatelessDdSpec<PathSpec, 2> { // Un DD con 2 aristas, osea un DD, parametro 2
     int const n_items;
     std::set<int> const path;
 
