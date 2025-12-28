@@ -37,13 +37,20 @@ Lo cual generara un archivo .txt con conjuntos, donde cada línea contiene una l
 Dado el codigo creado en test, se compila con:
 
 ```
-g++ -std=c++11 -o test test.cpp -I ./TdZdd/include
+g++ -std=c++11 -o test test.cpp -I ./TdZdd/include 
+```
+
+o 
+
+```
+g++ -O3 -march=native -DNDEBUG -std=c++11 -o test test.cpp -I ./TdZdd/include -lpthread
 ```
 
 Y se ejecuta considerando dos posibles modos:
 
-- Modo .bin (Usado para benchmark) : 0
-- Modo .txt (Usado para mayor reproducibilidad y creación de test): 1
+- Modo .txt (Usado para mayor reproducibilidad y creación de test): 0
+- Modo .bin (Usado para benchmark) : 1
+- Modo .docs : 2
 
 Si es necesario correr el script **crear_formato_input.py**, el cual toma un archivo .txt en el formato acordado y lo vuelve .bin, para esto especificar el nombre en terminal del archivo a buscar para transformarlo, se tiene que dar el nombre sin la extension (Ejemplo: "conjuntos") lo cual buscara "conjuntos.txt" en los parametros de ruta asociado y lo convertira a "conjuntos.bin" en formato adecuado.
 
