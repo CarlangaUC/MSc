@@ -1,0 +1,28 @@
+# --- Tu carpeta de datos ---
+archivos_test/
+
+# --- Salida de Compilación C++ ---
+test
+*.o
+*.out
+*.exe
+
+# --- Archivos de Datos Grandes (por seguridad) ---
+*.docs
+*.ciff
+*.bin
+*.iso
+
+# --- Archivos de Logs y Resultados ---
+*.csv
+*.log
+resultados_test/
+*.dot
+
+# --- Python (si usas scripts auxiliares) ---
+__pycache__/
+*.pyc
+
+# --- IDEs y Sistema ---
+.vscode/
+.DS_Store

@@ -23,32 +23,41 @@
 
 
 // Molde para solo un ZDD, la libreria construye con reglas sabiendo el molde la ZDD
-class PathSpec : public tdzdd::StatelessDdSpec<PathSpec, 2> { // Un DD con 2 aristas, osea un DD, parametro 2
+#include <algorithm> // Para la opt
+
+// Optimizacion del pathspec
+
+class PathSpec : public tdzdd::StatelessDdSpec<PathSpec, 2> {
     int const n_items;
-    std::set<int> const path;
+    std::set<int> const& path; // Referencia para velocidad
 
 public:
     PathSpec(int n, std::set<int> const& p) : n_items(n), path(p) {}
 
     int getRoot() const {
-        return n_items;
+        // Si el conjunto está vacío, retornamos -1 (True) porque es válido
+        if (path.empty()) return -1;
+        // La raíz es el valor más alto del conjunto
+        return *path.rbegin();
     }
 
     int getChild(int level, int value) const {
+        // Si la decisión es 0 (No tomar), el camino muere (0 = False)
+        // porque en este ZDD específico, todos los elementos del set son obligatorios.
+        if (value == 0) return 0;
 
+        // Buscamos el nivel actual
+        auto it = path.find(level);
+        
+        // Seguridad (no debería pasar)
+        if (it == path.end()) return 0;
 
-        bool item_actual = (path.count(level) > 0);
+        // Si es el elemento más pequeño del set, terminamos con Éxito (-1 = True)
+        if (it == path.begin()) return -1;
 
-        if (value == 1) { // TOMAR
-            if (!item_actual) return 0; // 0 es el terminal ⊥ (Falso)
-        } else { // NO TOMAR
-            if (item_actual) return 0; // 0 es el terminal ⊥ (Falso)
-        }
-
-        if (level == 1) {
-            return -1; // -1 es el terminal ⊤ (True)
-        }
-        return level - 1; // Continuar al siguiente nivel 
+        // --- LA SOLUCIÓN AL CRASH ---
+        // En vez de (level - 1), saltamos al siguiente elemento del set.
+        return *std::prev(it); 
     }
 };
 
@@ -134,7 +143,7 @@ namespace ZddAudit {
         
         // Cálculo de Cabeceras de Vectores (El Esqueleto)
 
-        // NodeTableEntity tiene 3 vectores MAESTROS:
+        // NodeTableEntity tiene 3 vectores:
         // 1. table (DataTable) -> Vector de vectores de Nodos por heredencia
         // 2. higherLevelTable  -> Vector de vectores de Ints propio
         // 3. lowerLevelTable   -> Vector de vectores de Ints propio
@@ -229,14 +238,29 @@ int main(int argc, char* argv[]) {
 
     // Debug de los modos
     if (modo == 0) {
-        input_path = "archivos_test/conjuntos.txt";
+        input_path = "archivos_test/1mq_mini.txt";
         infile.open(input_path); // Modo texto por defecto
         std::cout << "MODO SELECCIONADO: 0 (Texto)" << std::endl;
-    } else {
-        input_path = "archivos_test/conjuntos.bin";
+    } else if (modo == 1){
+        input_path = "archivos_test/1mq_mini.bin";
         infile.open(input_path, std::ios::binary); // Modo binario
         std::cout << "MODO SELECCIONADO: 1 (Binario)" << std::endl;
+    } else if (modo == 2){
+
+        // --- NUEVO MODO PISA ---
+        input_path = "archivos_test/msmarco_binario.docs"; // Tu archivo generado
+        infile.open(input_path, std::ios::binary);
+        std::cout << "MODO: 2 (PISA .docs)" << std::endl;
+
+        // Lectura de Cabecera Global PISA (Total de listas)
+        if (infile.is_open()) {
+            uint32_t total_listas;
+            infile.read(reinterpret_cast<char*>(&total_listas), sizeof(total_listas));
+            std::cout << ">> Cabecera PISA: " << total_listas << " listas detectadas." << std::endl;
+        }
+
     }
+
 
     if (!infile.is_open()) {
         std::cerr << "ERROR: No se pudo abrir " << input_path << std::endl;
@@ -259,7 +283,7 @@ int main(int argc, char* argv[]) {
 
     tdzdd::ElapsedTimeCounter zddTimer;
 
-    std::string log_file_path = output_dir + "memoria_log.csv"; // Archivo de log
+    std::string log_file_path = output_dir + "msmarco_binario.csv"; // Archivo de log
     std::ofstream logFile(log_file_path);
     logFile << "Paso,Nodos_DD,Bytes_DD,KB_DD,Nodos_ZDD,Bytes_ZDD,KB_ZDD,Peak_Mem_KB\n";
     
@@ -276,17 +300,19 @@ int main(int argc, char* argv[]) {
             if (linea.empty()) continue;
 
             std::stringstream ss(linea);
-            std::string segment;
-            while (std::getline(ss, segment, ',')) {
+            int val;
+
+            // Usamos operador de extracción para saltar espacios (Estilo Indices Invertidos/1mq.txt)
+
+            while (ss >> val) { // Leer por espacios, antes era por "," cambio para seguir formato y visualización
                 try {
-                    int val = std::stoi(segment);
                     current_set.insert(val);
                     if (val > max_val) max_val = val;
                 } catch (...) { continue; }
             }
             if (!current_set.empty()) lectura_exitosa = true;
 
-        } else { 
+        } else if (modo == 1){ 
             // Modo .bin
             uint32_t set_size;
             infile.read(reinterpret_cast<char*>(&set_size), sizeof(set_size));
@@ -299,6 +325,40 @@ int main(int argc, char* argv[]) {
                 if ((int)val > max_val) max_val = (int)val;
             }
             lectura_exitosa = true;
+            
+        } else {
+
+
+            // Modo lectura de .docs
+
+            // 1. Leer el tamaño de la lista actual (1 entero de 32 bits)
+            uint32_t list_len;
+            infile.read(reinterpret_cast<char*>(&list_len), sizeof(list_len));
+
+            // Si falla la lectura o es fin de archivo, terminamos
+            if (infile.eof() || !infile.good()) break;
+
+            // 2. Optimización: Leer todo el bloque de datos a un vector temporal
+            // Esto reduce las llamadas al sistema (I/O) drásticamente.
+            if (list_len > 0) {
+                std::vector<uint32_t> buffer(list_len);
+                
+                // Leemos 'list_len * 4 bytes' de una sola vez
+                infile.read(reinterpret_cast<char*>(buffer.data()), list_len * sizeof(uint32_t));
+
+                // 3. Insertar en el Set y buscar máximo
+                for (uint32_t val : buffer) {
+                    int val_seguro = (int)val + 1; // Parte en 0 muchos indices
+                    current_set.insert(val_seguro);
+                    if (val_seguro > max_val) max_val = val_seguro;
+                }
+                lectura_exitosa = true;
+            } else {
+                // Lista vacía (longitud 0), seguimos pero marcamos lectura válida
+                lectura_exitosa = true; 
+            }
+
+
         }
 
         if (!lectura_exitosa) continue;
@@ -334,6 +394,12 @@ int main(int argc, char* argv[]) {
                 << nodosPre << "," << statPre.totalBytes << "," << (statPre.totalBytes/1024.0) << ","
                 << nodosPost << "," << statPost.totalBytes << "," << (statPost.totalBytes/1024.0) << ","
                 << peakMemKB << "\n";
+
+
+        /*
+        size_t nodosActuales = dd.size();
+        logFile << paso << "," << nodosActuales << ",0,0," << nodosActuales << ",0,0," << peakMemKB << "\n";
+        */
 
         // Prints Verticales
         std::cout << "----------------------------" << std::endl;
