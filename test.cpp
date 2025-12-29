@@ -234,11 +234,11 @@ int main(int argc, char* argv[]) {
 
     // Debug de los modos
     if (modo == 0) {
-        input_path = "archivos_test/1mq_mini.txt";
+        input_path = "archivos_test/conjuntos.txt";
         infile.open(input_path); // Modo texto por defecto
         std::cout << "MODO SELECCIONADO: 0 (Texto)" << std::endl;
     } else if (modo == 1){
-        input_path = "archivos_test/1mq_mini_100.bin";
+        input_path = "archivos_test/1mq_mini_250.bin";
         infile.open(input_path, std::ios::binary); // Modo binario
         std::cout << "MODO SELECCIONADO: 1 (Binario)" << std::endl;
     } else if (modo == 2){
@@ -278,7 +278,7 @@ int main(int argc, char* argv[]) {
 
     tdzdd::ElapsedTimeCounter zddTimer;
 
-    std::string log_file_path = output_dir + "1mq_mini_100.csv"; // Archivo de log
+    std::string log_file_path = output_dir + "1mq_mini_250.csv"; // Archivo de log
     std::ofstream logFile(log_file_path);
     logFile << "Paso,Nodos_DD,Bytes_DD,KB_DD,Nodos_ZDD,Bytes_ZDD,KB_ZDD,Peak_Mem_KB\n";
     
