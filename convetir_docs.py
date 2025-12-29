@@ -10,8 +10,8 @@ except ImportError:
     sys.exit(1)
 
 # --- RUTAS ---
-INPUT_FILE = "/root/MAGISTER/archivos_test/bp-msmarco-passage-unicoil-quantized.ciff"
-OUTPUT_FILE = "/root/MAGISTER/archivos_test/msmarco_binario.docs"
+INPUT_FILE = "/root/MAGISTER/archivos_test/bp-msmarco-passage-esplade-quantized.ciff"
+OUTPUT_FILE = "/root/MAGISTER/archivos_test/msmarco_esplade.docs"
 
 def read_varint_manual(f):
     """Lee un Varint32 byte a byte."""
@@ -92,9 +92,9 @@ def procesar():
                 count_guardados += 1
 
             # === AGREGA ESTO AQUÍ ===
-            if count_guardados >= 20:  # <--- EL LÍMITE QUE QUIERAS
-                print("\n¡Límite de prueba alcanzado! Parando...")
-                break
+            #if count_guardados >= 20:  # <--- EL LÍMITE QUE QUIERAS
+            #    print("\n¡Límite de prueba alcanzado! Parando...")
+            #    break
 
             if (i + 1) % 5000 == 0:
                 print(f"Progreso: {i + 1}/{total_listas_esperadas} listas procesadas...\r", end="")
