@@ -27,39 +27,35 @@
 
 // Optimizacion del pathspec
 
-class PathSpec : public tdzdd::StatelessDdSpec<PathSpec, 2> {
+class PathSpec : public tdzdd::StatelessDdSpec<PathSpec, 2> { // Un DD con 2 aristas, osea un DD, parametro 2
     int const n_items;
-    std::set<int> const& path; // Referencia para velocidad
+    std::set<int> const path;
 
 public:
     PathSpec(int n, std::set<int> const& p) : n_items(n), path(p) {}
 
     int getRoot() const {
-        // Si el conjunto está vacío, retornamos -1 (True) porque es válido
-        if (path.empty()) return -1;
-        // La raíz es el valor más alto del conjunto
-        return *path.rbegin();
+        return n_items;
     }
 
     int getChild(int level, int value) const {
-        // Si la decisión es 0 (No tomar), el camino muere (0 = False)
-        // porque en este ZDD específico, todos los elementos del set son obligatorios.
-        if (value == 0) return 0;
 
-        // Buscamos el nivel actual
-        auto it = path.find(level);
-        
-        // Seguridad (no debería pasar)
-        if (it == path.end()) return 0;
 
-        // Si es el elemento más pequeño del set, terminamos con Éxito (-1 = True)
-        if (it == path.begin()) return -1;
+        bool item_actual = (path.count(level) > 0);
 
-        // --- LA SOLUCIÓN AL CRASH ---
-        // En vez de (level - 1), saltamos al siguiente elemento del set.
-        return *std::prev(it); 
+        if (value == 1) { // TOMAR
+            if (!item_actual) return 0; // 0 es el terminal ⊥ (Falso)
+        } else { // NO TOMAR
+            if (item_actual) return 0; // 0 es el terminal ⊥ (Falso)
+        }
+
+        if (level == 1) {
+            return -1; // -1 es el terminal ⊤ (True)
+        }
+        return level - 1; // Continuar al siguiente nivel 
     }
 };
+
 
 // Recorrer la ZDD para evaluar los nodos y su cantidad total de bytes CONSIDERANDO la tabla de hash asociada y los nodos con su valor y punteros
 // No se consideran los bytes del contenedor del ZDD y posiblemente de los nodos
@@ -242,13 +238,13 @@ int main(int argc, char* argv[]) {
         infile.open(input_path); // Modo texto por defecto
         std::cout << "MODO SELECCIONADO: 0 (Texto)" << std::endl;
     } else if (modo == 1){
-        input_path = "archivos_test/1mq_mini.bin";
+        input_path = "archivos_test/1mq_mini_100.bin";
         infile.open(input_path, std::ios::binary); // Modo binario
         std::cout << "MODO SELECCIONADO: 1 (Binario)" << std::endl;
     } else if (modo == 2){
 
         // --- NUEVO MODO PISA ---
-        input_path = "archivos_test/msmarco_binario.docs"; // Tu archivo generado
+        input_path = "archivos_test/msmarco_esplade.docs"; // Tu archivo generado
         infile.open(input_path, std::ios::binary);
         std::cout << "MODO: 2 (PISA .docs)" << std::endl;
 
@@ -269,10 +265,9 @@ int main(int argc, char* argv[]) {
 
     // Si es binario, usar cabecera formato 
     if (modo == 1) {
-        uint32_t _dummy, universe;
-        infile.read(reinterpret_cast<char*>(&_dummy), sizeof(_dummy));
-        infile.read(reinterpret_cast<char*>(&universe), sizeof(universe));
-        // No usamos _dummy ni universe en la lógica ZDD dinámica, solo avanzamos el puntero
+        uint32_t total_listas_ignore;
+        infile.read(reinterpret_cast<char*>(&total_listas_ignore), sizeof(total_listas_ignore));
+        std::cout << ">> Cabecera (Modo 1): " << total_listas_ignore << " listas." << std::endl;
     }
 
     std::cout << "Leyendo '" << input_path << "'..." << std::endl;
@@ -283,7 +278,7 @@ int main(int argc, char* argv[]) {
 
     tdzdd::ElapsedTimeCounter zddTimer;
 
-    std::string log_file_path = output_dir + "msmarco_binario.csv"; // Archivo de log
+    std::string log_file_path = output_dir + "1mq_mini_100.csv"; // Archivo de log
     std::ofstream logFile(log_file_path);
     logFile << "Paso,Nodos_DD,Bytes_DD,KB_DD,Nodos_ZDD,Bytes_ZDD,KB_ZDD,Peak_Mem_KB\n";
     
@@ -321,11 +316,15 @@ int main(int argc, char* argv[]) {
             for (uint32_t i = 0; i < set_size; ++i) {
                 uint32_t val;
                 infile.read(reinterpret_cast<char*>(&val), sizeof(val));
-                current_set.insert((int)val);
-                if ((int)val > max_val) max_val = (int)val;
+                
+                // --- CAMBIO 1: SUMAR 1 (Igual que en modo 2) ---
+                int val_seguro = (int)val + 1; 
+                current_set.insert(val_seguro);
+                
+                if (val_seguro > max_val) max_val = val_seguro;
             }
             lectura_exitosa = true;
-            
+
         } else {
 
 
