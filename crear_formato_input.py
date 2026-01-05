@@ -1,7 +1,7 @@
 import struct
 import os
 
-def convertir_txt_a_bin(input_path, output_path):
+def convertir_a_binario_pisa(input_path, output_path):
     print(f"--- Procesando archivo ---")
     print(f"Entrada: {input_path}")
     print(f"Salida:  {output_path}")
@@ -69,21 +69,37 @@ def convertir_txt_a_bin(input_path, output_path):
     except Exception as e:
         print(f"Error escribiendo binario: {e}")
 
-# --- Bloque Main ---
 if __name__ == "__main__":
-    nombre = input("Ingrese el nombre del archivo (ej: '1mq'): ").strip()
-    if nombre.lower().endswith(".txt"):
-        nombre = nombre[:-4]
+    entrada_usuario = input("Ingrese el nombre del archivo (ej: 'webdocs' o '1mq.txt'): ").strip()
+    
+    carpeta = "archivos_test"
+    archivo_encontrado = None
+
+    # 1. Lista de posibles ubicaciones y extensiones a probar
+    candidatos = [
+        entrada_usuario,                                      # Tal cual lo escribió
+        os.path.join(carpeta, entrada_usuario),               # En carpeta archivos_test
+        f"{entrada_usuario}.dat",                             # Agregando .dat
+        f"{entrada_usuario}.txt",                             # Agregando .txt
+        os.path.join(carpeta, f"{entrada_usuario}.dat"),      # En carpeta + .dat
+        os.path.join(carpeta, f"{entrada_usuario}.txt")       # En carpeta + .txt
+    ]
+
+    # 2. Buscar el primero que exista
+    for ruta in candidatos:
+        if os.path.exists(ruta) and os.path.isfile(ruta):
+            archivo_encontrado = ruta
+            break
+    
+    if archivo_encontrado:
+        # Generar nombre de salida: cambia la extensión original (.dat/.txt) por .bin
+        base, _ = os.path.splitext(archivo_encontrado)
+        ruta_salida = f"{base}.bin"
         
-    carpeta = "archivos_test" 
-    posible_ruta_1 = os.path.join(carpeta, f"{nombre}.txt")
-    posible_ruta_2 = f"{nombre}.txt"
+        convertir_a_binario_pisa(archivo_encontrado, ruta_salida)
 
-    if os.path.exists(posible_ruta_1):
-        ruta_txt = posible_ruta_1
-        ruta_bin = os.path.join(carpeta, f"{nombre}.bin") # O .docs
     else:
-        ruta_txt = posible_ruta_2
-        ruta_bin = f"{nombre}.bin"
-
-    convertir_txt_a_bin(ruta_txt, ruta_bin)
+        print("\n❌ Error: No se encontró el archivo.")
+        print("Buscamos en las siguientes rutas y no existían:")
+        for c in candidatos:
+            print(f" - {c}")

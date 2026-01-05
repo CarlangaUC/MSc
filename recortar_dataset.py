@@ -2,7 +2,7 @@ import os
 import random
 import struct
 
-def recortar_y_generar_binario(input_path, output_path_base, cantidad_objetivo):
+def recortar_y_generar(input_path, output_path_base, cantidad_objetivo, min_elementos):
     if not os.path.exists(input_path):
         print(f"Error: No encuentro '{input_path}'")
         return
@@ -18,17 +18,20 @@ def recortar_y_generar_binario(input_path, output_path_base, cantidad_objetivo):
 
     # Selección Aleatoria
     if cantidad_objetivo >= total_original:
-        print("La cantidad pedida es mayor o igual al original. Se conserva todo.")
+        print("La cantidad pedida es mayor o igual al original. Se procesará todo el archivo.")
         seleccion = lineas
     else:
-        print(f"Seleccionando {cantidad_objetivo} conjuntos aleatorios...")
+        print(f"Seleccionando {cantidad_objetivo} conjuntos aleatorios (antes del filtro)...")
         seleccion = random.sample(lineas, cantidad_objetivo)
 
     datos_limpios = []
     universo_local = 0
     total_enteros = 0
     
-    print("Limpiando y estructurando datos...")
+    # Contadores para el reporte
+    descartados_por_longitud = 0
+    
+    print(f"Limpiando, ordenando y filtrando (Mínimo {min_elementos} elementos)...")
     
     for linea in seleccion:
         try:
@@ -36,9 +39,14 @@ def recortar_y_generar_binario(input_path, output_path_base, cantidad_objetivo):
             numeros = [int(x) for x in linea.split()]
             
             # Limpieza para ZDD (Ordenados y Únicos)
-            # Esto es vital para que la intersección/unión funcione bien
             numeros = sorted(list(set(numeros)))
             
+            # --- FILTRO DE TAMAÑO ---
+            if len(numeros) < min_elementos:
+                descartados_por_longitud += 1
+                continue # Saltamos a la siguiente iteración
+            
+            # Si pasa el filtro, lo guardamos
             if numeros:
                 datos_limpios.append(numeros)
                 total_enteros += len(numeros)
@@ -60,8 +68,7 @@ def recortar_y_generar_binario(input_path, output_path_base, cantidad_objetivo):
             f.write(linea_str + "\n")
 
     # --- 2. GUARDAR BINARIO PISA .docs (Para tu C++) ---
-    # Este formato incluye el HEADER correcto (Total de listas)
-    out_bin = f"{output_path_base}.bin" # O .docs, es lo mismo
+    out_bin = f"{output_path_base}.bin"
     
     try:
         with open(out_bin, 'wb') as f_bin:
@@ -75,8 +82,6 @@ def recortar_y_generar_binario(input_path, output_path_base, cantidad_objetivo):
                 # Largo de la lista
                 f_bin.write(struct.pack('<I', n))
                 # Datos de la lista
-                # NOTA: Los guardamos tal cual (raw). 
-                # Tu código C++ ya tiene el "+1" para manejar el ID 0 si aparece.
                 f_bin.write(struct.pack(f'<{n}I', *nums))
                 
     except Exception as e:
@@ -84,21 +89,29 @@ def recortar_y_generar_binario(input_path, output_path_base, cantidad_objetivo):
         return
 
     print(f"\n--- Resumen Final ---")
-    print(f"Conjuntos procesados: {len(datos_limpios)}")
-    print(f"Universo (Max ID):    {universo_local}")
+    print(f"Conjuntos seleccionados inicialmente: {len(seleccion)}")
+    print(f"Descartados (len < {min_elementos}):      {descartados_por_longitud}")
+    print(f"Conjuntos FINALES guardados:      {len(datos_limpios)}")
+    print(f"Universo (Max ID):                {universo_local}")
+    print(f"Total Enteros:                    {total_enteros}")
     print(f"Archivos generados:")
-    print(f"  -> {out_txt} (Texto)")
-    print(f"  -> {out_bin} (Binario PISA compatible con tu test.cpp)")
+    print(f"  -> {out_txt}")
+    print(f"  -> {out_bin}")
 
 if __name__ == "__main__":
-    # Configuración por defecto o inputs
-    archivo_entrada = "archivos_test/1mq.txt" 
-    
-    # Nombre base sin extensión (el script agrega .txt y .bin)
-    nombre_salida = "archivos_test/1mq_mini_100" 
+    # Configuración por defecto
+    archivo_entrada = "archivos_test/webdocs.dat" 
+    nombre_base = "archivos_test/webdocs_filtrado" 
 
     try:
-        N = int(input("¿Cuántos conjuntos quieres conservar? : "))
-        recortar_y_generar_binario(archivo_entrada, nombre_salida, N)
+        N = int(input("¿Cuántos conjuntos quieres intentar tomar? : "))
+        m = int(input("¿Cuál es la cantidad mínima de elementos por conjunto? : "))
+        
+        # Generamos un nombre de archivo descriptivo automáticamente
+        # Ej: 1mq_mini_1000_min10
+        nombre_salida = f"{nombre_base}_{N}_min_{m}"
+        
+        recortar_y_generar(archivo_entrada, nombre_salida, N, m)
+        
     except ValueError:
         print("Por favor ingresa un número entero válido.")
