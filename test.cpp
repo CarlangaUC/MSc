@@ -27,6 +27,63 @@
 
 // Optimizacion del pathspec
 
+#include <vector>
+#include <algorithm>
+#include <functional> // Para std::greater
+
+
+// Optimización idea
+class FastPathSpec : public tdzdd::StatelessDdSpec<FastPathSpec, 2> {
+    // Usamos vector en lugar de set para localidad de caché y acceso rápido.
+    // Los datos deben estar ordenados DESCENDENTEMENTE (Mayor a menor).
+    std::vector<int> sorted_items; 
+
+public:
+    // Constructor: Recibe el set, lo pasa a vector y lo ordena inverso
+    FastPathSpec(std::set<int> const& p) {
+        sorted_items.reserve(p.size());
+        // Copiar y ordenar de mayor a menor (tdzdd construye de arriba a abajo)
+        for (int x : p) {
+            sorted_items.push_back(x);
+        }
+        // Orden Descendente: {25000000, 100, 5, 1}
+        std::sort(sorted_items.rbegin(), sorted_items.rend()); // Posible optimización ya que lo ordenamos desde antes
+    }
+
+    // El nodo raíz empieza directamente en el ID más alto del conjunto.
+    // Nos saltamos millones de niveles vacíos al inicio.
+    int getRoot() const {
+        if (sorted_items.empty()) return -1; // -1 es Terminal True (Conjunto vacío válido)
+        return sorted_items[0]; // Retorna el ID más alto (ej: 25,000,000)
+    }
+
+    int getChild(int level, int value) const {
+        // En un PathSpec (un solo conjunto), solo hay un camino válido:
+        // Debemos TOMAR (value=1) todos los elementos del conjunto.
+        
+        if (value == 0) {
+            return 0; // 0 es Terminal False (Camino muerto). 
+                      // Si no tomamos un elemento obligatorio, fallamos.
+        }
+
+        // Si value == 1 (Tomamos el elemento actual):
+        // Buscamos cuál es el SIGUIENTE nivel que existe en nuestro conjunto.
+        // Usamos upper_bound con std::greater para buscar en el vector descendente.
+        
+        // Buscamos el primer elemento que sea ESTRICTAMENTE MENOR que 'level'
+        auto it = std::upper_bound(sorted_items.begin(), sorted_items.end(), level, std::greater<int>());
+
+        if (it == sorted_items.end()) {
+            return -1; // No quedan más elementos -> Éxito (Terminal True)
+        }
+
+        return *it; // Saltamos directamente al siguiente ID (ej: de 25M a 100)
+    }
+};
+
+
+/*
+
 class PathSpec : public tdzdd::StatelessDdSpec<PathSpec, 2> { // Un DD con 2 aristas, osea un DD, parametro 2
     int const n_items;
     std::set<int> const path;
@@ -56,6 +113,7 @@ public:
     }
 };
 
+*/
 
 // Recorrer la ZDD para evaluar los nodos y su cantidad total de bytes CONSIDERANDO la tabla de hash asociada y los nodos con su valor y punteros
 // No se consideran los bytes del contenedor del ZDD y posiblemente de los nodos
@@ -231,20 +289,24 @@ int main(int argc, char* argv[]) {
     std::string input_path;
     std::string output_dir = "resultados_test/";
     std::ifstream infile;
+    std::string nombre_archivo;
 
     // Debug de los modos
     if (modo == 0) {
-        input_path = "archivos_test/conjuntos.txt";
+        nombre_archivo = "conjuntos";
+        input_path = "archivos_test/" + nombre_archivo + ".txt";
         infile.open(input_path); // Modo texto por defecto
         std::cout << "MODO SELECCIONADO: 0 (Texto)" << std::endl;
     } else if (modo == 1){
-        input_path = "archivos_test/1mq_mini_250.bin";
+        nombre_archivo = "accidents";
+        input_path = "archivos_test/" + nombre_archivo + ".bin";
         infile.open(input_path, std::ios::binary); // Modo binario
         std::cout << "MODO SELECCIONADO: 1 (Binario)" << std::endl;
     } else if (modo == 2){
 
         // --- NUEVO MODO PISA ---
-        input_path = "archivos_test/msmarco_esplade.docs"; // Tu archivo generado
+        nombre_archivo = "msmarco_esplade";
+        input_path = "archivos_test/" + nombre_archivo + ".docs";
         infile.open(input_path, std::ios::binary);
         std::cout << "MODO: 2 (PISA .docs)" << std::endl;
 
@@ -278,11 +340,12 @@ int main(int argc, char* argv[]) {
 
     tdzdd::ElapsedTimeCounter zddTimer;
 
-    std::string log_file_path = output_dir + "1mq_mini_250.csv"; // Archivo de log
+    std::string log_file_path = output_dir + nombre_archivo + ".csv"; // Archivo de log
     std::ofstream logFile(log_file_path);
     logFile << "Paso,Nodos_DD,Bytes_DD,KB_DD,Nodos_ZDD,Bytes_ZDD,KB_ZDD,Peak_Mem_KB\n";
     
     // Lectura
+    
     while (true) {
         std::set<int> current_set;
         int max_val = 0;
@@ -366,8 +429,9 @@ int main(int argc, char* argv[]) {
         zddTimer.start();
         
         // Crear Molde para ese conjunto
-        PathSpec spec(max_val, current_set);
-
+        FastPathSpec spec(current_set); 
+        //dd = tdzdd::DdStructure<2>(tdzdd::zddUnion(dd, spec));
+    
         // Union al ZDD acumulado (Operacion Dinamica)
         dd = tdzdd::DdStructure<2>(tdzdd::zddUnion(dd, spec));
         
@@ -419,6 +483,11 @@ int main(int argc, char* argv[]) {
             title << "ZDD_Paso_" << paso;
             dd.dumpDot(out, title.str());
             out.close();
+        }
+        */
+        /*
+        if(paso == 90){
+         break;
         }
         */
     }
