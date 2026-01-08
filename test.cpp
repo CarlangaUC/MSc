@@ -298,7 +298,7 @@ int main(int argc, char* argv[]) {
         infile.open(input_path); // Modo texto por defecto
         std::cout << "MODO SELECCIONADO: 0 (Texto)" << std::endl;
     } else if (modo == 1){
-        nombre_archivo = "accidents";
+        nombre_archivo = "accidents_filtrado_10000000000000000000000000000000_min_40";
         input_path = "archivos_test/" + nombre_archivo + ".bin";
         infile.open(input_path, std::ios::binary); // Modo binario
         std::cout << "MODO SELECCIONADO: 1 (Binario)" << std::endl;
@@ -498,7 +498,7 @@ int main(int argc, char* argv[]) {
     tdzdd::ResourceUsage usageEnd;
     tdzdd::ResourceUsage usageDiff = usageEnd - usageStart;
 
-    std::cout << "\n=== REPORTE DE RENDIMIENTO (TdZdd Native) ===" << std::endl;
+    std::cout << "\n=== REPORTE DE RENDIMIENTO (TdZdd) ===" << std::endl;
 
     std::cout << "Tiempo Real:     " << usageDiff.etime << " s" << std::endl;
     std::cout << "Tiempo CPU:      " << usageDiff.utime << " s" << std::endl;

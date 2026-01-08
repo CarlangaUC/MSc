@@ -20,8 +20,12 @@ def convertir_a_binario_pisa(input_path, output_path):
             if not linea: continue
             
             try:
+                # --- LIMPIEZA ROBUSTA ---
+                # Reemplazamos caracteres comunes de listas (corchetes, comas, punto y coma) por espacios
+                linea_limpia = linea.replace(',', ' ').replace('[', ' ').replace(']', ' ').replace(';', ' ')
+                
                 # Leemos los enteros
-                elementos = [int(x) for x in linea.split()]
+                elementos = [int(x) for x in linea_limpia.split()]
                 
                 if elementos:
                     # Limpieza estándar: ordenar y únicos

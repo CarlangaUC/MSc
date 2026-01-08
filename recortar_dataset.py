@@ -100,8 +100,8 @@ def recortar_y_generar(input_path, output_path_base, cantidad_objetivo, min_elem
 
 if __name__ == "__main__":
     # Configuración por defecto
-    archivo_entrada = "archivos_test/webdocs.dat" 
-    nombre_base = "archivos_test/webdocs_filtrado" 
+    archivo_entrada = "archivos_test/accidents.dat" 
+    nombre_base = "archivos_test/accidents_filtrado" 
 
     try:
         N = int(input("¿Cuántos conjuntos quieres intentar tomar? : "))
