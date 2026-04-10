@@ -1,3 +1,6 @@
 [submodule "TdZdd"]
 	path = TdZdd
 	url = https://github.com/kunisura/TdZdd.git
+[submodule "uiHRDC"]
+	path = uiHRDC
+	url = https://github.com/Carlangawins/uiHRDC.git
