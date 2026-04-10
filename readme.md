@@ -56,7 +56,7 @@ Si es necesario correr el script **crear_formato_input.py**, el cual toma un arc
 
 Por ende se ejecuta con
 ```
-./test 0|1
+./test 0|1|2
 ```
 
 ## Visualización

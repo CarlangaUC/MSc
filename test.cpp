@@ -7,7 +7,7 @@
 // TDZDD
 
 #include <tdzdd/DdSpec.hpp> // Para DD
-#include <tdzdd/DdStructure.hpp> // Luego se reduce a BDD o ZDD, reduction rules y 0-edge
+#include <tdzdd/DdStructure.hpp> // Luego se reduce a DD o ZDD, reduction rules y 0-edge
 #include <tdzdd/DdSpecOp.hpp> // Para operaciones sobre la ZDD
 #include <tdzdd/DdEval.hpp> // Tabla de hash
 
@@ -35,7 +35,7 @@
 // Optimización idea
 class FastPathSpec : public tdzdd::StatelessDdSpec<FastPathSpec, 2> {
     // Usamos vector en lugar de set para localidad de caché y acceso rápido.
-    // Los datos deben estar ordenados DESCENDENTEMENTE (Mayor a menor).
+    // Los datos deben estar ordenados DESCENDENTEMENTE (Mayor a menor), formato ZDD
     std::vector<int> sorted_items; 
 
 public:
@@ -81,6 +81,48 @@ public:
     }
 };
 
+/*
+class WikipediaMapper {
+private:
+    std::vector<uint32_t> page_starts;
+
+public:
+    // Cargar el arreglo binario generado por Python
+    bool cargar_mapeo(const std::string& filename) {
+        std::ifstream file(filename, std::ios::binary);
+        if (!file.is_open()) {
+            std::cerr << "Error al abrir el archivo de mapeo." << std::endl;
+            return false;
+        }
+
+        uint32_t val;
+        while (file.read(reinterpret_cast<char*>(&val), sizeof(val))) {
+            page_starts.push_back(val);
+        }
+        file.close();
+        return true;
+    }
+
+    // Traduce un Global DocID (del ZDD) a Página y Versión Local
+    void imprimir_info_version(uint32_t global_doc_id) const {
+        if (page_starts.empty()) return;
+
+        // Búsqueda binaria O(log N) para encontrar el rango de la página
+        auto it = std::upper_bound(page_starts.begin(), page_starts.end(), global_doc_id);
+        
+        // El índice de la página es la posición anterior al límite superior
+        uint32_t page_id = std::distance(page_starts.begin(), it) - 1;
+        uint32_t inicio_de_pagina = page_starts[page_id];
+        
+        // Versión local relativa a esa página (empezando desde 0)
+        uint32_t local_version = global_doc_id - inicio_de_pagina;
+
+        std::cout << "[MATCH] Global DocID: " << global_doc_id 
+                  << " --> Página: " << page_id 
+                  << " | Versión Histórica: " << local_version << std::endl;
+    }
+};
+*/
 
 /*
 
@@ -293,20 +335,20 @@ int main(int argc, char* argv[]) {
 
     // Debug de los modos
     if (modo == 0) {
-        nombre_archivo = "conjuntos";
+        nombre_archivo = "test_trie";
         input_path = "archivos_test/" + nombre_archivo + ".txt";
         infile.open(input_path); // Modo texto por defecto
         std::cout << "MODO SELECCIONADO: 0 (Texto)" << std::endl;
     } else if (modo == 1){
-        nombre_archivo = "accidents_filtrado_10000000000000000000000000000000_min_40";
+        nombre_archivo = "retail_opt";
         input_path = "archivos_test/" + nombre_archivo + ".bin";
         infile.open(input_path, std::ios::binary); // Modo binario
         std::cout << "MODO SELECCIONADO: 1 (Binario)" << std::endl;
     } else if (modo == 2){
 
         // --- NUEVO MODO PISA ---
-        nombre_archivo = "msmarco_esplade";
-        input_path = "archivos_test/" + nombre_archivo + ".docs";
+        nombre_archivo = "wikipedia_zdd";
+        input_path = "resultados_test/" + nombre_archivo + ".docs";
         infile.open(input_path, std::ios::binary);
         std::cout << "MODO: 2 (PISA .docs)" << std::endl;
 
@@ -337,6 +379,9 @@ int main(int argc, char* argv[]) {
     // Parte vacia la DD
     tdzdd::DdStructure<2> dd;
     int paso = 0;
+
+    // Testeo ahora con versiones
+    std::vector<tdzdd::DdStructure<2>> historial;
 
     tdzdd::ElapsedTimeCounter zddTimer;
 
@@ -420,7 +465,6 @@ int main(int argc, char* argv[]) {
                 lectura_exitosa = true; 
             }
 
-
         }
 
         if (!lectura_exitosa) continue;
@@ -430,6 +474,7 @@ int main(int argc, char* argv[]) {
         
         // Crear Molde para ese conjunto
         FastPathSpec spec(current_set); 
+
         //dd = tdzdd::DdStructure<2>(tdzdd::zddUnion(dd, spec));
     
         // Union al ZDD acumulado (Operacion Dinamica)
@@ -442,6 +487,28 @@ int main(int argc, char* argv[]) {
 
         // Reducir (Node Sharing y Node deletion rules)
         dd.zddReduce();
+
+        historial.push_back(dd);
+
+        tdzdd::DdStructure<2> robdd = dd.zdd2bdd(dd.topLevel());
+
+        // Guardar ZDD .dot
+        std::stringstream ss_zdd;
+        ss_zdd << output_dir << nombre_archivo << "_" << "paso_" << paso << "_ZDD.dot";
+        std::ofstream out_zdd(ss_zdd.str());
+        if (out_zdd.good()) {
+            dd.dumpDot(out_zdd, "ZDD_Paso_" + std::to_string(paso));
+            out_zdd.close();
+        }
+
+        // Guardar ROBDD .dot
+        std::stringstream ss_bdd;
+        ss_bdd << output_dir << nombre_archivo << "_" << "paso_" << paso << "_ROBDD.dot";
+        std::ofstream out_bdd(ss_bdd.str());
+        if (out_bdd.good()) {
+            robdd.dumpDot(out_bdd, "ROBDD_Paso_" + std::to_string(paso));
+            out_bdd.close();
+        }
         
         //Size post-reduccion ZDD
         ZddAudit::MemoryStats statPost = ZddAudit::auditarMemoria(dd);
@@ -485,11 +552,11 @@ int main(int argc, char* argv[]) {
             out.close();
         }
         */
-        /*
-        if(paso == 90){
+        
+        if(paso == 50){
          break;
         }
-        */
+        
     }
     infile.close();
     logFile.close();
@@ -526,6 +593,7 @@ int main(int argc, char* argv[]) {
     //imprimirAuditoria(dd);
     imprimirReporte(dd);
 
+    /*
     std::string final_dot = output_dir + "zdd_final.dot";
     std::ofstream out_final(final_dot);
     dd.dumpDot(out_final, "ZDD_Final");
@@ -535,6 +603,79 @@ int main(int argc, char* argv[]) {
 
     std::cout << "Nodos Lógicos: " << dd.size() << std::endl;
     
+    //std::cout << "\n=== GENERANDO VISUALIZACIÓN (.dot) ===" << std::endl;
+
+    
+    // ESTRATEGIA : Generar un archivo .dot por cada versión (Para ver la evolución)
+    // Esto es ideal para ver paso a paso cómo se agregan nodos.
+    for (size_t i = 0; i < historial.size(); ++i) {
+        std::stringstream ss;
+        // Formato con ceros a la izquierda (v_001.dot) para ordenar bien en carpetas
+        ss << output_dir << "version_" << std::setfill('0') << std::setw(3) << i << ".dot";
+        
+        std::ofstream out(ss.str());
+        if (out.good()) {
+            std::stringstream titulo;
+            titulo << "Version_" << i << "_Nodos_" << historial[i].size();
+            historial[i].dumpDot(out, titulo.str());
+            out.close();
+        }
+    }
+    
+
+    if (historial.size() >= 4) {
+        std::cout << "\n==============================================" << std::endl;
+        std::cout << "=== TEST DE PERSISTENCIA (BRANCHING V4) ===" << std::endl;
+        std::cout << "==============================================" << std::endl;
+
+        // 1. RECUPERAR: Obtenemos el puntero a la versión 4 (índice 3)
+        // Nota: Al copiar 'historial[3]', NO copiamos el grafo, solo el puntero.
+        tdzdd::DdStructure<2> v4_original = historial[3];
+        
+        std::cout << "[1] Versión 4 recuperada del historial." << std::endl;
+        std::cout << "    ID Raíz Original: " << v4_original.root().hash() << std::endl; // Hash único del nodo
+        std::cout << "    Nodos Originales: " << v4_original.size() << std::endl;
+
+        // 2. MODIFICAR: Crear el nuevo conjunto {1, 2, 5}
+        std::set<int> set_modificacion = {1, 2, 5};
+        FastPathSpec spec_mod(set_modificacion);
+
+        std::cout << "[2] Creando rama 'V4_Branch' agregando {1, 2, 5}..." << std::endl;
+
+        // Aquí ocurre la magia: zddUnion crea una NUEVA estructura que comparte 
+        // todo lo posible con v4_original. v4_original NO se toca.
+        tdzdd::DdStructure<2> v4_branch = tdzdd::zddUnion(v4_original, spec_mod);
+        v4_branch.zddReduce();
+
+        // 3. VERIFICAR
+        std::cout << "[3] Resultado:" << std::endl;
+        std::cout << "    V4 ORIGINAL (Intacta): " << v4_original.size() << " nodos." << std::endl;
+        std::cout << "    V4 BRANCH (Modificada): " << v4_branch.size() << " nodos." << std::endl;
+
+        // 4. EXPORTAR DOTs
+        // Guardamos la original para comparar
+        std::string path_orig = output_dir + "branch_test_v4_original.dot";
+        std::ofstream out_orig(path_orig);
+        v4_original.dumpDot(out_orig, "V4_Original");
+        out_orig.close();
+
+        // Guardamos la rama modificada
+        std::string path_branch = output_dir + "branch_test_v4_with_1_2_5.dot";
+        std::ofstream out_branch(path_branch);
+        v4_branch.dumpDot(out_branch, "V4_Branch_Modified");
+        out_branch.close();
+
+        std::cout << "\n[OK] Archivos generados para visualización:" << std::endl;
+        std::cout << "     -> " << path_orig << std::endl;
+        std::cout << "     -> " << path_branch << std::endl;
+        std::cout << "==============================================" << std::endl;
+
+    } else {
+        std::cout << "\n[!] No hay suficientes pasos para probar la versión 4." << std::endl;
+    }
+    // ---------------------------------------------------------
+    */
+
     return 0;
 }
 
