@@ -26,3 +26,7 @@ __pycache__/
 # --- IDEs y Sistema ---
 .vscode/
 .DS_Store
+
+# Resúmenes locales de sesión (mantener en disco, no versionar)
+CAMBIOS_SESION_ZDD_BITPACKING_PFD.md
+CAMBIOS_CONVERSACION_VERSIONADO_ZDD_2026-05-11.md
