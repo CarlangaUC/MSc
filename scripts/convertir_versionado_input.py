@@ -43,14 +43,17 @@ def compilar_dataset(txt_path, boundaries_path, log_path, output_docs, output_ma
     print(f"2. Leyendo {boundaries_path}...")
     with open(boundaries_path, 'rb') as f_bound:
         data = f_bound.read()
-        num_enteros = len(data) // 4
-        boundaries = struct.unpack(f'<{num_enteros}I', data)
+        num_enteros = len(data) // 8
+        boundaries = struct.unpack(f'<{num_enteros}Q', data)
     
     total_docs = len(boundaries) - 1 # Total de DocIDs globales
     inverted_index = defaultdict(list)
     vocab = {}
     next_term_id = 0
 
+    # Esto es extra por mi parte, no hay compresión como tal ademas que el motor que buscaremos ocupar ya genera su propio vocabulario,
+    # pero me gusta tener un conteo de términos para ver la magnitud del dataset aparte de generar un indice invertido "dummy".
+    
     print("3. Parseando texto y construyendo listas de posteo...")
     with open(txt_path, 'rb') as f_text:
         for doc_id in range(total_docs):
@@ -103,12 +106,19 @@ def compilar_dataset(txt_path, boundaries_path, log_path, output_docs, output_ma
     print("¡Proceso ETL completado exitosamente!")
 
 # Ejecutar con los archivos que posees
+nombre_archivo = "wiki_2gb" # Cambia esto al nombre de tu archivo de texto
 compilar_dataset(
-    txt_path = os.path.join("archivos_test","wiki_src2gb.txt"),
-    boundaries_path= os.path.join("archivos_test",'wiki_src2gb.txt.DOCBOUNDARIES'),
-    log_path= os.path.join("archivos_test",'wiki_src2gb.log'),
-    output_docs= os.path.join("resultados_test",'wikipedia_zdd.docs'),
-    output_mapping=os.path.join("resultados_test",'page_mapping.bin'),
-    output_mapping_txt=os.path.join("resultados_test",'page_mapping_legible.txt'), # <-- NUEVO PARÁMETRO
-    output_txt=os.path.join("resultados_test",'wikipedia_zdd.txt') 
+    txt_path = os.path.join("archivos_test",f"{nombre_archivo}.txt"),
+    boundaries_path= os.path.join("archivos_test",f"{nombre_archivo}.txt.DOCBOUNDARIES.ul"),
+    log_path= os.path.join("archivos_test",f"{nombre_archivo}.log"),
+
+    output_docs= os.path.join("resultados_test",f"{nombre_archivo}.docs"),
+    output_mapping=os.path.join("resultados_test",f"page_mapping_{nombre_archivo}.bin"  ),
+    output_mapping_txt=os.path.join("resultados_test",f"page_mapping_legible_{nombre_archivo}.txt"), # <-- NUEVO PARÁMETRO
+    output_txt=os.path.join("resultados_test",f"{nombre_archivo}.txt") 
+    
 )
+
+# resultado en resultados_test/wikipedia_zdd_wiki_2gb.docs y
+#  resultados_test/wikipedia_zdd_wiki_2gb.txt,
+#  con mapeo en page_mapping_wiki_2gb.bin y page_mapping_legible_wiki_2gb.txt
