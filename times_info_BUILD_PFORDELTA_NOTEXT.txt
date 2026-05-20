@@ -1,0 +1,100 @@
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/uiHRDC/uiHRDC/data/texts/torsen.text200mb.txt /root/MAGISTER/uiHRDC/uiHRDC/data/texts/index_torsen_200mb pfdThreshold=128;int2=merge;intn=merge
+	Building time: 3.682 secs
+	Input: 209716881 bytes --> Output 9820730 bytes.
+	Overall compression --> 4.68% (0.37 bits per char).
+
+	 Extended info 
+ 
+	Space statistics for II-words-DocOriented
+	 tindex structure = 104 bytes.
+	 number of diff words= 13802
+	 number of docs (ndocs)= 6840
+	 vocabulary of words = 125362 bytes.
+	 Inverted list-structure = 9695264 bytes.
+	 Text (compressed representation) = 0 bytes.
+	 Versioned postings enabled = 0
+	 Version map entries = 0
+	 Whole index = 9820730 bytes  ** Ratio = 4.683 % **
+ 
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/uiHRDC/uiHRDC/data/texts/wiki_100mb.txt /root/MAGISTER/uiHRDC/uiHRDC/data/texts/index_wiki_100mb_named nooptions
+	Building time: 3.723 secs
+	Input: 117001334 bytes --> Output 1290045 bytes.
+	Overall compression --> 1.10% (0.09 bits per char).
+
+	 Extended info 
+ 
+	Space statistics for II-words-DocOriented
+	 tindex structure = 104 bytes.
+	 number of diff words= 9774
+	 number of docs (ndocs)= 2009
+	 vocabulary of words = 82490 bytes.
+	 Inverted list-structure = 1207451 bytes.
+	 Text (compressed representation) = 0 bytes.
+	 Versioned postings enabled = 1
+	 Version map entries = 15
+	 Whole index = 1290045 bytes  ** Ratio = 1.103 % **
+ 
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/uiHRDC/uiHRDC/data/texts/torsen.text200mb.txt /root/MAGISTER/uiHRDC/uiHRDC/data/texts/index_torsen_200mb_named2 nooptions
+	Building time: 4.988 secs
+	Input: 209716881 bytes --> Output 2125318 bytes.
+	Overall compression --> 1.01% (0.08 bits per char).
+
+	 Extended info 
+ 
+	Space statistics for II-words-DocOriented
+	 tindex structure = 104 bytes.
+	 number of diff words= 13802
+	 number of docs (ndocs)= 6840
+	 vocabulary of words = 125362 bytes.
+	 Inverted list-structure = 1999852 bytes.
+	 Text (compressed representation) = 0 bytes.
+	 Versioned postings enabled = 0
+	 Version map entries = 0
+	 Whole index = 2125318 bytes  ** Ratio = 1.013 % **
+ 
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/uiHRDC/uiHRDC/data/texts/wiki_100mb.txt /root/MAGISTER/uiHRDC/uiHRDC/data/texts/index_wiki_100mb_named nooptions
+	Building time: 3.674 secs
+	Input: 117001334 bytes --> Output 1290045 bytes.
+	Overall compression --> 1.10% (0.09 bits per char).
+
+	 Extended info 
+ 
+	Space statistics for II-words-DocOriented
+	 tindex structure = 104 bytes.
+	 number of diff words= 9774
+	 number of docs (ndocs)= 2009
+	 vocabulary of words = 82490 bytes.
+	 Inverted list-structure = 1207451 bytes.
+	 Text (compressed representation) = 0 bytes.
+	 Versioned postings enabled = 1
+	 Version map entries = 15
+	 Whole index = 1290045 bytes  ** Ratio = 1.103 % **
+ 
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/uiHRDC/uiHRDC/data/texts/torsen.text200mb.txt /root/MAGISTER/uiHRDC/uiHRDC/data/texts/index_torsen_200mb_named2 nooptions
+	Building time: 5.071 secs
+	Input: 209716881 bytes --> Output 2125318 bytes.
+	Overall compression --> 1.01% (0.08 bits per char).
+
+	 Extended info 
+ 
+	Space statistics for II-words-DocOriented
+	 tindex structure = 104 bytes.
+	 number of diff words= 13802
+	 number of docs (ndocs)= 6840
+	 vocabulary of words = 125362 bytes.
+	 Inverted list-structure = 1999852 bytes.
+	 Text (compressed representation) = 0 bytes.
+	 Versioned postings enabled = 0
+	 Version map entries = 0
+	 Whole index = 2125318 bytes  ** Ratio = 1.013 % **
+ 
+=====================================

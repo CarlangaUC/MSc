@@ -1,0 +1,26 @@
+
+ Search: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/SEARCH_PFORDELTA_NOTEXT /root/MAGISTER/uiHRDC/uiHRDC/data/texts/index_wiki_100mb_named: nooptions
+	Load index time = 0.000000 sec
+	Index size = 1290045 bytes = (1259 Kbytes)
+	 source size = 117001334 bytes ==> ratio = 1.103%
+	** Operation = E ** numpatts = 1, wordsXpattern=1-1
+	**size_Index= 1290045 bytes, size_Inv-lists= 1207451 bytes, size_compText= 0 bytes
+	Total Num occs found = 1979
+	Extract:Intersect:Intersect time = 0.000000 sec
+	Extract:Intersect/Num_occs = 0.000000 msec/occss
+	Extract:Intersect_time/pat = 0.00000000 msec/pat
+		(Load_time+Extract:Intersect)/Num_occs = 0.000000  msec/occs
+
+
+ Search: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/SEARCH_PFORDELTA_NOTEXT /root/MAGISTER/uiHRDC/uiHRDC/data/texts/index_torsen_200mb_named2: nooptions
+	Load index time = 0.002203 sec
+	Index size = 2125318 bytes = (2075 Kbytes)
+	 source size = 209716881 bytes ==> ratio = 1.013%
+	** Operation = E ** numpatts = 0, wordsXpattern=1-1
+	**size_Index= 2125318 bytes, size_Inv-lists= 1999852 bytes, size_compText= 0 bytes
+	Total Num occs found = 0
+	Extract:Intersect:Intersect time = 0.000001 sec
+	Extract:Intersect/Num_occs = inf msec/occss
+	Extract:Intersect_time/pat = inf msec/pat
+		(Load_time+Extract:Intersect)/Num_occs = inf  msec/occs
+
