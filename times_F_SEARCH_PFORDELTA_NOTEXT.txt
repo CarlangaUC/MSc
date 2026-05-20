@@ -1,0 +1,13 @@
+
+ Search: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/SEARCH_PFORDELTA_NOTEXT /root/MAGISTER/uiHRDC/uiHRDC/data/texts/index_wiki_100mb_named: nooptions
+	Load index time = 0.000874 sec
+	Index size = 1290045 bytes = (1259 Kbytes)
+	 source size = 117001334 bytes ==> ratio = 1.103%
+	** Operation = F ** numpatts = 1, wordsXpattern=1-1
+	**size_Index= 1290045 bytes, size_Inv-lists= 1207451 bytes, size_compText= 0 bytes
+	Total Num occs found = 11
+	Extract:Intersect:Intersect time = 0.000013 sec
+	Extract:Intersect/Num_occs = 0.001182 msec/occss
+	Extract:Intersect_time/pat = 0.01300000 msec/pat
+		(Load_time+Extract:Intersect)/Num_occs = 0.080636  msec/occs
+
