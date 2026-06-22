@@ -1,0 +1,48 @@
+digraph MTZDD_ZDD {
+	compound=true nodesep=0.8 rankdir=TB ranksep=0.8
+	node [fontname=Helvetica style=filled]
+	TITLE_1 [label="PISO 1: MTZDD
+(Bits del Documento)" fillcolor=white fontcolor=blue fontsize=16 shape=plaintext]
+	HOLA [label="Raíz
+\"hola\"" fontcolor=black shape=plaintext]
+	CHAO [label="Raíz
+\"chao\"" fontcolor=black shape=plaintext]
+	H_d1 [label=d1 color="#2B7CE9" fillcolor="#D0E4F5" penwidth=2 shape=circle]
+	H_d0 [label=d0 color="#2B7CE9" fillcolor="#D0E4F5" penwidth=2 shape=circle]
+	C_d1 [label=d1 color="#2B7CE9" fillcolor="#D0E4F5" penwidth=2 shape=circle]
+	Ptr_A [label="Puntero A
+Historial {1,2}" color="#D6B656" fillcolor="#FFF2CC" penwidth=2 shape=box style="filled,rounded"]
+	Ptr_B [label="Puntero B
+Historial {1,3}" color="#D6B656" fillcolor="#FFF2CC" penwidth=2 shape=box style="filled,rounded"]
+	"0_MTZDD" [label="0
+(Vacío)" color="#7F7F7F" fillcolor="#F2F2F2" shape=box]
+	HOLA -> H_d1
+	H_d1 -> H_d0 [label=" Baja (0)" color=gray style=dashed]
+	H_d1 -> Ptr_B [label=" Alta (1)
+[Doc 2: 10]" color=red penwidth=2]
+	H_d0 -> "0_MTZDD" [label=" Baja (0)" color=gray style=dashed]
+	H_d0 -> Ptr_A [label=" Alta (1)
+[Doc 1: 01]" color=red penwidth=2]
+	CHAO -> C_d1
+	C_d1 -> "0_MTZDD" [label=" Baja (0)" color=gray style=dashed]
+	C_d1 -> Ptr_A [label=" Alta (1)
+[Doc 2: 10]" color=red penwidth=2]
+	TITLE_2 [label="PISO 2: ZDD ÚNICO
+(Versiones)" fillcolor=white fontcolor=green fontsize=16 shape=plaintext]
+	A_v1 [label=v1 color="#548235" fillcolor="#E2F0D9" penwidth=2 shape=circle]
+	A_v2 [label=v2 color="#548235" fillcolor="#E2F0D9" penwidth=2 shape=circle]
+	B_v1 [label=v1 color="#548235" fillcolor="#E2F0D9" penwidth=2 shape=circle]
+	B_v3 [label=v3 color="#548235" fillcolor="#E2F0D9" penwidth=2 shape=circle]
+	"1_ZDD" [label=1 color="#7F7F7F" fillcolor="#F2F2F2" shape=box]
+	"0_ZDD" [label=0 color="#7F7F7F" fillcolor="#F2F2F2" shape=box]
+	Ptr_A -> A_v1 [color=orange penwidth=3 style=dotted]
+	Ptr_B -> B_v1 [color=orange penwidth=3 style=dotted]
+	A_v1 -> "0_ZDD" [color=gray style=dashed]
+	A_v1 -> A_v2 [label=" Alta" color=blue penwidth=2]
+	A_v2 -> "0_ZDD" [color=gray style=dashed]
+	A_v2 -> "1_ZDD" [label=" Alta" color=blue penwidth=2]
+	B_v1 -> "0_ZDD" [color=gray style=dashed]
+	B_v1 -> B_v3 [label=" Alta" color=blue penwidth=2]
+	B_v3 -> "0_ZDD" [color=gray style=dashed]
+	B_v3 -> "1_ZDD" [label=" Alta" color=blue penwidth=2]
+}

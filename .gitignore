@@ -30,3 +30,19 @@ __pycache__/
 # Resúmenes locales de sesión (mantener en disco, no versionar)
 CAMBIOS_SESION_ZDD_BITPACKING_PFD.md
 CAMBIOS_CONVERSACION_VERSIONADO_ZDD_2026-05-11.md
+CAMBIOS_CONVERSACION_TWO_FLOOR_ZDD_2026-05-20.md
+THESIS_CONTEXTO_MAGISTER.md
+PLAN_A_SEGUIR_MOTOR
+
+# Artefactos de testeo/resultados del subrepo uiHRDC
+uiHRDC/uiHRDC/data/texts/index_*.const
+uiHRDC/uiHRDC/data/texts/index_*.voc
+uiHRDC/uiHRDC/data/texts/index_*.il.*
+uiHRDC/uiHRDC/data/texts/listas_wikipedia_zdd*
+uiHRDC/uiHRDC/data/texts/page_mapping_*.bin
+uiHRDC/uiHRDC/data/texts/*.DOCBOUNDARIES.ul
+uiHRDC/uiHRDC/data/texts/*.log
+uiHRDC/uiHRDC/data/texts/wiki_*.txt
+uiHRDC/uiHRDC/data/texts/torsen*.txt
+uiHRDC/uiHRDC/indexes/NOPOS/II_docs/postinglists.posts.*
+uiHRDC/uiHRDC/indexes/NOPOS/II_docs/times_*.txt

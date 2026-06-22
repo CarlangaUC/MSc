@@ -1,0 +1,76 @@
+{
+  "datasets": [
+    {
+      "id": "torsen_200mb",
+      "dataset_name": "torsen.text200mb",
+      "versioned": false,
+      "text_path": "/root/MAGISTER/uiHRDC/uiHRDC/data/texts/torsen.text200mb.txt",
+      "index_basename": "/root/MAGISTER/uiHRDC/uiHRDC/data/texts/index_torsen_200mb_stress",
+      "patterns_path": "/root/MAGISTER/uiHRDC/uiHRDC/data/patterns/torsen200mb_1_1",
+      "listas_path": "/root/MAGISTER/uiHRDC/uiHRDC/data/texts/listas_torsen.text200mb",
+      "docs_global_path": null,
+      "docs_packed_path": null,
+      "page_mapping_path": null
+    },
+    {
+      "id": "wiki_100mb",
+      "dataset_name": "wiki_100mb",
+      "versioned": true,
+      "text_path": "/root/MAGISTER/uiHRDC/uiHRDC/data/texts/wiki_100mb.txt",
+      "index_basename": "/root/MAGISTER/uiHRDC/uiHRDC/data/texts/index_wiki_100mb_stress",
+      "patterns_path": "/root/MAGISTER/uiHRDC/uiHRDC/data/patterns/torsen200mb_1_1",
+      "listas_path": "/root/MAGISTER/uiHRDC/uiHRDC/data/texts/listas_wikipedia_zdd_wiki_100mb_versionada",
+      "docs_global_path": null,
+      "docs_packed_path": "/root/MAGISTER/resultados_test/wiki_100mb_uihrdc_packed64.docs",
+      "page_mapping_path": "/root/MAGISTER/uiHRDC/uiHRDC/data/texts/page_mapping_wiki_100mb.bin"
+    },
+    {
+      "id": "wiki_200mb",
+      "dataset_name": "wiki_200mb",
+      "versioned": true,
+      "text_path": "/root/MAGISTER/uiHRDC/uiHRDC/data/texts/wiki_200mb.txt",
+      "index_basename": "/root/MAGISTER/uiHRDC/uiHRDC/data/texts/index_wiki_200mb_stress",
+      "patterns_path": "/root/MAGISTER/uiHRDC/uiHRDC/data/patterns/torsen200mb_1_1",
+      "listas_path": "/root/MAGISTER/uiHRDC/uiHRDC/data/texts/listas_wikipedia_zdd_wiki_200mb_versionada",
+      "docs_global_path": "/root/MAGISTER/resultados_test/wiki_200mb_uihrdc_global.docs",
+      "docs_packed_path": "/root/MAGISTER/resultados_test/wiki_200mb_uihrdc_packed.docs",
+      "page_mapping_path": "/root/MAGISTER/uiHRDC/uiHRDC/data/texts/page_mapping_wiki_200mb.bin"
+    },
+    {
+      "id": "wiki_500mb",
+      "dataset_name": "wiki_500mb",
+      "versioned": true,
+      "text_path": "/root/MAGISTER/uiHRDC/uiHRDC/data/texts/wiki_500mb.txt",
+      "index_basename": "/root/MAGISTER/uiHRDC/uiHRDC/data/texts/index_wiki_500mb_stress",
+      "patterns_path": "/root/MAGISTER/uiHRDC/uiHRDC/data/patterns/torsen200mb_1_1",
+      "listas_path": "/root/MAGISTER/uiHRDC/uiHRDC/data/texts/listas_wikipedia_zdd_wiki_500mb_versionada",
+      "docs_global_path": "/root/MAGISTER/resultados_test/wiki_500mb_uihrdc_global.docs",
+      "docs_packed_path": "/root/MAGISTER/resultados_test/wiki_500mb_uihrdc_packed.docs",
+      "page_mapping_path": "/root/MAGISTER/uiHRDC/uiHRDC/data/texts/page_mapping_wiki_500mb.bin"
+    },
+    {
+      "id": "wiki_1gb",
+      "dataset_name": "wiki_1gb",
+      "versioned": true,
+      "text_path": "/root/MAGISTER/uiHRDC/uiHRDC/data/texts/wiki_1gb.txt",
+      "index_basename": "/root/MAGISTER/uiHRDC/uiHRDC/data/texts/index_wiki_1gb_stress",
+      "patterns_path": "/root/MAGISTER/uiHRDC/uiHRDC/data/patterns/torsen200mb_1_1",
+      "listas_path": "/root/MAGISTER/uiHRDC/uiHRDC/data/texts/listas_wikipedia_zdd_wiki_1gb_versionada",
+      "docs_global_path": null,
+      "docs_packed_path": "/root/MAGISTER/resultados_test/wiki_1gb_uihrdc_packed64.docs",
+      "page_mapping_path": "/root/MAGISTER/uiHRDC/uiHRDC/data/texts/page_mapping_wiki_1gb.bin"
+    },
+    {
+      "id": "wiki_2gb",
+      "dataset_name": "wiki_2gb",
+      "versioned": true,
+      "text_path": "/root/MAGISTER/uiHRDC/uiHRDC/data/texts/wiki_2gb.txt",
+      "index_basename": "/root/MAGISTER/uiHRDC/uiHRDC/data/texts/index_wiki_2gb_stress",
+      "patterns_path": "/root/MAGISTER/uiHRDC/uiHRDC/data/patterns/torsen200mb_1_1",
+      "listas_path": "/root/MAGISTER/uiHRDC/uiHRDC/data/texts/listas_wikipedia_zdd_wiki_2gb_versionada",
+      "docs_global_path": null,
+      "docs_packed_path": "/root/MAGISTER/resultados_test/wiki_2gb_uihrdc_packed64.docs",
+      "page_mapping_path": "/root/MAGISTER/uiHRDC/uiHRDC/data/texts/page_mapping_wiki_2gb.bin"
+    }
+  ]
+}

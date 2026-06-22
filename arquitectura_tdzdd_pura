@@ -1,0 +1,45 @@
+digraph ZDD_Items_Etiquetados {
+	compound=true nodesep=0.8 rankdir=TB ranksep=0.8
+	node [fontname=Helvetica style=filled]
+	TITLE_1 [label="PISO 1: ZDD Global
+Universo de Ítems = (Maestro, ID_Patrón)" fillcolor=white fontcolor=blue fontname="Helvetica-Bold" fontsize=14 shape=plaintext]
+	VOC_HOLA [label="Raíz: \"hola\"" color="#9673A6" fillcolor="#E1D5E7" fontname="Helvetica-Bold" shape=cds]
+	VOC_CHAO [label="Raíz: \"chao\"" color="#9673A6" fillcolor="#E1D5E7" fontname="Helvetica-Bold" shape=cds]
+	ITEM_3 [label="Ítem 3
+(Doc 2, Patrón B)" color="#2B7CE9" fillcolor="#D0E4F5" fontname="Helvetica-Bold" penwidth=2 shape=ellipse]
+	ITEM_2 [label="Ítem 2
+(Doc 2, Patrón A)" color="#2B7CE9" fillcolor="#D0E4F5" fontname="Helvetica-Bold" penwidth=2 shape=ellipse]
+	ITEM_1 [label="Ítem 1
+(Doc 1, Patrón A)" color="#2B7CE9" fillcolor="#D0E4F5" fontname="Helvetica-Bold" penwidth=2 shape=ellipse]
+	"1_TDZDD" [label="1
+(Aceptación)" color="#7F7F7F" fillcolor="#F2F2F2" fontname="Helvetica-Bold" shape=box]
+	"0_TDZDD" [label="0
+(Rechazo)" color="#7F7F7F" fillcolor="#F2F2F2" fontname="Helvetica-Bold" shape=box]
+	VOC_HOLA -> ITEM_3 [color="#9673A6" penwidth=2]
+	ITEM_3 -> ITEM_1 [label=" Alta (1)" color=red penwidth=2]
+	ITEM_3 -> "0_TDZDD" [label=" Baja (0)" color=gray style=dashed]
+	ITEM_1 -> "1_TDZDD" [label=" Alta (1)" color=red penwidth=2]
+	ITEM_1 -> "0_TDZDD" [label=" Baja (0)" color=gray style=dashed]
+	VOC_CHAO -> ITEM_2 [color="#9673A6" penwidth=2]
+	ITEM_2 -> "1_TDZDD" [label=" Alta (1)" color=red penwidth=2]
+	ITEM_2 -> "0_TDZDD" [label=" Baja (0)" color=gray style=dashed]
+	TITLE_2 [label="PISO 2: Bosque Compartido ZDD
+Universo de Variables = Versiones" fillcolor=white fontcolor=green fontname="Helvetica-Bold" fontsize=14 shape=plaintext]
+	v1_A [label=v1 color="#548235" fillcolor="#E2F0D9" penwidth=2 shape=circle]
+	v2_A [label=v2 color="#548235" fillcolor="#E2F0D9" penwidth=2 shape=circle]
+	v1_B [label=v1 color="#548235" fillcolor="#E2F0D9" penwidth=2 shape=circle]
+	v3_B [label=v3 color="#548235" fillcolor="#E2F0D9" penwidth=2 shape=circle]
+	"1_CUDD" [label=1 color="#7F7F7F" fillcolor="#F2F2F2" fontname="Helvetica-Bold" shape=box]
+	"0_CUDD" [label=0 color="#7F7F7F" fillcolor="#F2F2F2" fontname="Helvetica-Bold" shape=box]
+	ITEM_3 -> v1_B [label=" Extrae Patrón B" color=orange penwidth=3 style=dotted]
+	ITEM_2 -> v1_A [label=" Extrae Patrón A" color=orange penwidth=3 style=dotted]
+	ITEM_1 -> v1_A [label=" Extrae Patrón A" color=orange penwidth=3 style=dotted]
+	v1_A -> "0_CUDD" [color=gray style=dashed]
+	v1_A -> v2_A [color=blue penwidth=2]
+	v2_A -> "0_CUDD" [color=gray style=dashed]
+	v2_A -> "1_CUDD" [color=blue penwidth=2]
+	v1_B -> "0_CUDD" [color=gray style=dashed]
+	v1_B -> v3_B [color=blue penwidth=2]
+	v3_B -> "0_CUDD" [color=gray style=dashed]
+	v3_B -> "1_CUDD" [color=blue penwidth=2]
+}
