@@ -1,90 +1,117 @@
-import struct
+#!/usr/bin/env python3
+import argparse
 import os
 import re
+import struct
+from pathlib import Path
 
-def acortar_dataset_wiki(txt_in, bound_in, log_in, txt_out, bound_out, log_out, target_size_mb):
-    target_size_bytes = target_size_mb * 1024 * 1024
-    
-    # 1. Leer las fronteras originales del archivo binario
-    print(f"Leyendo fronteras originales desde {bound_in}...")
-    with open(bound_in, 'rb') as fb:
-        data = fb.read()
-        num_enteros = len(data) // 4
-        boundaries = struct.unpack(f'<{num_enteros}I', data)
-    
-    print(boundaries[:10], "...", boundaries[-10:])  # Mostrar las primeras y últimas fronteras para verificación
 
-    # 2. Analizar el log para calcular un corte limpio
-    print(f"Buscando un corte limpio que alcance o supere los {target_size_mb} MB...")
-    versiones_acumuladas = 0
-    docs_maestros_guardados = 0
-    lineas_log_guardar = []
-    
-    with open(log_in, 'r', encoding='utf-8', errors='ignore') as f_log:
-        for line in f_log:
-            # Primero guardamos la línea para que el log quede exacto (no borramos nada)
-            lineas_log_guardar.append(line)
-            
-            match = re.search(r'parsed\s+(\d+)\s+versions,\s+for\s+document', line)
-            if match:
-                num_versiones = int(match.group(1))
-                versiones_acumuladas += num_versiones
-                docs_maestros_guardados += 1
-                
-                # Revisamos el tamaño del archivo hasta esta nueva versión
-                if versiones_acumuladas < len(boundaries):
-                    tamaño_actual = boundaries[versiones_acumuladas]
-                    
-                    # Si ya cruzamos el límite de los 100 MB, detenemos la lectura aquí
-                    if tamaño_actual >= target_size_bytes:
-                        break
+def load_boundaries(path: Path) -> list[int]:
+    data = path.read_bytes()
+    if len(data) % 8 == 0:
+        n = len(data) // 8
+        return list(struct.unpack(f"<{n}Q", data))
+    if len(data) % 4 == 0:
+        n = len(data) // 4
+        return list(struct.unpack(f"<{n}I", data))
+    raise ValueError(f"Formato de boundaries invalido: {path} (bytes={len(data)})")
 
-    bytes_a_copiar = boundaries[versiones_acumuladas]
-    print(f"Corte determinado: {docs_maestros_guardados} Documentos Maestros ({versiones_acumuladas} versiones totales).")
-    print(f"Tamaño exacto del nuevo texto: {bytes_a_copiar / (1024**2):.2f} MB")
 
-    # 3. Generar el nuevo Log
-    print(f"Generando {log_out}...")
-    with open(log_out, 'w', encoding='utf-8') as f_log_out:
-        f_log_out.writelines(lineas_log_guardar)
-
-    # 4. Generar el nuevo archivo de fronteras (.DOCBOUNDARIES.ul)
-    print(f"Generando {bound_out}...")
-    nuevos_boundaries = boundaries[:versiones_acumuladas + 1]
-    with open(bound_out, 'wb') as fb_out:
-        fb_out.write(struct.pack(f'<{len(nuevos_boundaries)}Q', *nuevos_boundaries))
-        
-    # 5. Generar el nuevo archivo de texto
-    print(f"Generando {txt_out} (copiando fragmentos)...")
-    with open(txt_in, 'rb') as ft_in, open(txt_out, 'wb') as ft_out:
-        chunk_size = 1024 * 1024 * 10  # Copia en fragmentos de 10MB para no ahogar la RAM
-        bytes_restantes = bytes_a_copiar
-        while bytes_restantes > 0:
-            leer = min(chunk_size, bytes_restantes)
-            chunk = ft_in.read(leer)
+def copy_prefix(src: Path, dst: Path, total_bytes: int) -> None:
+    chunk_size = 10 * 1024 * 1024
+    remaining = total_bytes
+    with src.open("rb") as fin, dst.open("wb") as fout:
+        while remaining > 0:
+            to_read = min(chunk_size, remaining)
+            chunk = fin.read(to_read)
             if not chunk:
                 break
-            ft_out.write(chunk)
-            bytes_restantes -= len(chunk)
+            fout.write(chunk)
+            remaining -= len(chunk)
 
-    print("\n¡Dataset acortado con éxito! Listo para generar page_mapping y compilar.")
 
-# ==========================================
-# EJECUCIÓN
-# ==========================================
-name_input = "wiki_src2gb"
-name_output = "wiki_2gb"
+def acortar_dataset_wiki(
+    txt_in: Path,
+    bound_in: Path,
+    log_in: Path,
+    txt_out: Path,
+    bound_out: Path,
+    log_out: Path,
+    target_size_mb: int,
+) -> None:
+    target_size_bytes = target_size_mb * 1024 * 1024
 
-acortar_dataset_wiki(
-    txt_in = os.path.join("archivos_test", f"{name_input}.txt"),
-    bound_in = os.path.join("archivos_test", f"{name_input}.txt.DOCBOUNDARIES.ul"),
-    log_in = os.path.join("archivos_test", f"{name_input}.log"),
-    
-    txt_out = os.path.join("archivos_test", f"{name_output}.txt"),
-    bound_out = os.path.join("archivos_test", f"{name_output}.txt.DOCBOUNDARIES.ul"),
-    log_out = os.path.join("archivos_test", f"{name_output}.log"),
-    
-    target_size_mb = 2000  # Puedes ajustar este valor si después quieres probar con 500MB
-)
+    print(f"[INFO] Leyendo boundaries: {bound_in}")
+    boundaries = load_boundaries(bound_in)
+    if not boundaries:
+        raise ValueError("No se encontraron boundaries")
 
-# todo en archivos_test/wiki_100mb.* quedará el nuevo dataset acortado, listo para ser procesado por convertir_versionado_input.py
+    versiones_acumuladas = 0
+    docs_maestros_guardados = 0
+    lineas_log_guardar: list[str] = []
+
+    pattern = re.compile(r"parsed\s+(\d+)\s+versions,\s+for\s+document")
+    with log_in.open("r", encoding="utf-8", errors="ignore") as f_log:
+        for line in f_log:
+            lineas_log_guardar.append(line)
+            m = pattern.search(line)
+            if not m:
+                continue
+            num_versiones = int(m.group(1))
+            versiones_acumuladas += num_versiones
+            docs_maestros_guardados += 1
+            if versiones_acumuladas < len(boundaries):
+                size_now = boundaries[versiones_acumuladas]
+                if size_now >= target_size_bytes:
+                    break
+
+    if versiones_acumuladas >= len(boundaries):
+        versiones_acumuladas = len(boundaries) - 1
+
+    bytes_a_copiar = boundaries[versiones_acumuladas]
+    print(
+        f"[INFO] Corte: masters={docs_maestros_guardados}, versiones={versiones_acumuladas}, "
+        f"size_mb={bytes_a_copiar / (1024**2):.2f}"
+    )
+
+    log_out.parent.mkdir(parents=True, exist_ok=True)
+    with log_out.open("w", encoding="utf-8") as fout:
+        fout.writelines(lineas_log_guardar)
+    print(f"[OK] log: {log_out}")
+
+    nuevos_boundaries = boundaries[: versiones_acumuladas + 1]
+    bound_out.parent.mkdir(parents=True, exist_ok=True)
+    with bound_out.open("wb") as fout:
+        fout.write(struct.pack(f"<{len(nuevos_boundaries)}Q", *nuevos_boundaries))
+    print(f"[OK] boundaries: {bound_out}")
+
+    txt_out.parent.mkdir(parents=True, exist_ok=True)
+    copy_prefix(txt_in, txt_out, bytes_a_copiar)
+    print(f"[OK] text: {txt_out}")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Recorta dataset wiki por tamaño objetivo en MB")
+    parser.add_argument("--name-input", default="wiki_src2gb")
+    parser.add_argument("--name-output", required=True)
+    parser.add_argument("--target-size-mb", type=int, required=True)
+    parser.add_argument("--base-dir", default="archivos_test")
+    args = parser.parse_args()
+
+    base = Path(args.base_dir)
+    name_input = args.name_input
+    name_output = args.name_output
+
+    acortar_dataset_wiki(
+        txt_in=base / f"{name_input}.txt",
+        bound_in=base / f"{name_input}.txt.DOCBOUNDARIES.ul",
+        log_in=base / f"{name_input}.log",
+        txt_out=base / f"{name_output}.txt",
+        bound_out=base / f"{name_output}.txt.DOCBOUNDARIES.ul",
+        log_out=base / f"{name_output}.log",
+        target_size_mb=args.target_size_mb,
+    )
+
+
+if __name__ == "__main__":
+    main()

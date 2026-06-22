@@ -1,0 +1,3 @@
+packed_docs,lists_processed,dd_nodes_pre,dd_nodes_post,values_packed,pairs_td,distinct_patterns,pool_indep_nodes,pool_indep_bytes,pool_unified_tdzdd_nodes,max_rel,elapsed_s,cpu_s,peak_mem_kb
+resultados_test/wiki_100mb_uihrdc_packed.docs,9774,447,214,5424820,12125,3847,2536640,484987832,398695,1855,64.1341,61.8094,742256
+cudd,resultados_test/wiki_100mb_uihrdc_packed.docs,9774,5424820,12125,3847,438596,2,162343576,1855,591.819362

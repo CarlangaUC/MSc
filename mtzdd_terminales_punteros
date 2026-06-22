@@ -1,0 +1,43 @@
+digraph MTZDD_Final {
+	compound=true nodesep=0.8 rankdir=TB ranksep=0.8
+	node [fontname=Helvetica style=filled]
+	TITLE_1 [label="PISO 1: MTZDD Global
+Nodos = Documentos Maestros | Terminales = Punteros" fillcolor=white fontcolor=blue fontname="Helvetica-Bold" fontsize=14 shape=plaintext]
+	VOC_HOLA [label="Raíz: \"hola\"" color="#9673A6" fillcolor="#E1D5E7" fontname="Helvetica-Bold" shape=cds]
+	VOC_CHAO [label="Raíz: \"chao\"" color="#9673A6" fillcolor="#E1D5E7" fontname="Helvetica-Bold" shape=cds]
+	DOC2_H [label="Doc 2" color="#2B7CE9" fillcolor="#D0E4F5" fontname="Helvetica-Bold" penwidth=2 shape=ellipse]
+	DOC1_H [label="Doc 1" color="#2B7CE9" fillcolor="#D0E4F5" fontname="Helvetica-Bold" penwidth=2 shape=ellipse]
+	DOC2_C [label="Doc 2" color="#2B7CE9" fillcolor="#D0E4F5" fontname="Helvetica-Bold" penwidth=2 shape=ellipse]
+	PTR_A [label="Puntero A
+(Patrón {1,2})" color="#D6B656" fillcolor="#FFF2CC" fontname="Helvetica-Bold" penwidth=2 shape=box style="filled,rounded"]
+	PTR_B [label="Puntero B
+(Patrón {1,3})" color="#D6B656" fillcolor="#FFF2CC" fontname="Helvetica-Bold" penwidth=2 shape=box style="filled,rounded"]
+	"0_MT" [label="0
+(No encontrado)" color="#7F7F7F" fillcolor="#F2F2F2" fontname="Helvetica-Bold" shape=box]
+	VOC_HOLA -> DOC2_H [color="#9673A6" penwidth=2]
+	DOC2_H -> PTR_B [label=" Alta (Es el Doc 2)" color=red penwidth=2]
+	DOC2_H -> DOC1_H [label=" Baja (Buscar otro)" color=gray style=dashed]
+	DOC1_H -> PTR_A [label=" Alta (Es el Doc 1)" color=red penwidth=2]
+	DOC1_H -> "0_MT" [label=" Baja" color=gray style=dashed]
+	VOC_CHAO -> DOC2_C [color="#9673A6" penwidth=2]
+	DOC2_C -> PTR_A [label=" Alta (Es el Doc 2)" color=red penwidth=2]
+	DOC2_C -> "0_MT" [label=" Baja" color=gray style=dashed]
+	TITLE_2 [label="PISO 2: Bosque Compartido ZDD
+Variables = Versiones" fillcolor=white fontcolor=green fontname="Helvetica-Bold" fontsize=14 shape=plaintext]
+	v1_A [label=v1 color="#548235" fillcolor="#E2F0D9" penwidth=2 shape=circle]
+	v2_A [label=v2 color="#548235" fillcolor="#E2F0D9" penwidth=2 shape=circle]
+	v1_B [label=v1 color="#548235" fillcolor="#E2F0D9" penwidth=2 shape=circle]
+	v3_B [label=v3 color="#548235" fillcolor="#E2F0D9" penwidth=2 shape=circle]
+	"1_ZDD" [label="1 (Aceptación)" color="#7F7F7F" fillcolor="#F2F2F2" fontname="Helvetica-Bold" shape=box]
+	"0_ZDD" [label=0 color="#7F7F7F" fillcolor="#F2F2F2" fontname="Helvetica-Bold" shape=box]
+	PTR_A -> v1_A [label=" Extrae" color=orange penwidth=3 style=dotted]
+	PTR_B -> v1_B [label=" Extrae" color=orange penwidth=3 style=dotted]
+	v1_A -> "0_ZDD" [color=gray style=dashed]
+	v1_A -> v2_A [color=blue penwidth=2]
+	v2_A -> "0_ZDD" [color=gray style=dashed]
+	v2_A -> "1_ZDD" [color=blue penwidth=2]
+	v1_B -> "0_ZDD" [color=gray style=dashed]
+	v1_B -> v3_B [color=blue penwidth=2]
+	v3_B -> "0_ZDD" [color=gray style=dashed]
+	v3_B -> "1_ZDD" [color=blue penwidth=2]
+}
