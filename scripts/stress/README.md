@@ -1,30 +1,39 @@
 # Stress Campaign Toolkit
 
-Canonical stress inputs and runners for:
-- uiHRDC (`BUILD_PFORDELTA_NOTEXT`, `SEARCH_PFORDELTA_NOTEXT`)
-- TdZdd single-floor (`test`)
-- TdZdd piso 1 (`scripts/cpp/test_tdzdd_piso1`)
-- TdZdd piso 2 / CUDD piso 2 (`scripts/cpp/test_tdzdd_piso2 tdzdd|cudd`)
-- future CUDD comparison (same dataset ladder and output schema)
+Pipeline activo: **`zdd_cudd_plus_t`** — ver [docs/PIPELINE_UIHRDC_CUDD.md](../../docs/PIPELINE_UIHRDC_CUDD.md).
+
+Flujos históricos (Backbone 1, TdZdd): [scripts_deprecados/](../../scripts_deprecados/).
+
+## Runner de producción
+
+| Runner | Binario | Uso en stress |
+|---|---|---|
+| **CUDD con tags** | `zdd_cudd_plus_t` | `build`, `verify u+t\|log`, ladder BPI |
+
+### Comandos típicos (wiki_1gb)
+
+```bash
+DOCS=resultados_test/wiki_1gb_uihrdc_packed64.docs
+VOC=uiHRDC/uiHRDC/data/texts/index_wiki_1gb_named.voc
+
+# verify tag canónico u+t
+./zdd_cudd_plus_t verify u+t "$DOCS" "$VOC" resultados_test/wiki_1gb_plus_t_tmp.zpack 0
+
+# verify modo log (phi)
+./zdd_cudd_plus_t verify log "$DOCS" "$VOC" resultados_test/wiki_1gb_plus_t_log_tmp.zpack 0
+
+# build + CSV evolución (bpi_build diagnóstico)
+./zdd_cudd_plus_t build u+t "$DOCS" "$VOC" none 0 resultados_test/cudd_evolucion_1gb_plus_t.csv 500
+```
+
+Layouts: `docOffset=V+1` en `u+t`; `docOffset=1+⌈log₂(V+1)⌉` en `log`. Verify debe finalizar con `tag_mismatches=0`, `roundtrip_mismatches=0` y `overall: PASS`.
+
+**No usar `demo` en la ladder** (solo toy u=4).
 
 ## Dataset ladder
 
-`dataset_ladder.json` defines the canonical dataset sequence and artifacts:
-- non-versioned baseline: `torsen.text200mb`
-- versioned ladder: `wiki_100mb`, `wiki_200mb`, `wiki_500mb`, `wiki_1gb`, `wiki_2gb`
-
-Each dataset includes:
-- source text for uiHRDC build
-- index basename for stress runs
-- patterns file for search
-- exported `listas_*` path
-- optional docs paths (`_global.docs`, `_packed.docs`)
-- optional `page_mapping_*.bin`
+`dataset_ladder.json`: `torsen.text200mb`, `wiki_100mb` … `wiki_2gb`.
 
 ## Stop rule
 
-Default stop rule for stress runners:
-- stop escalation when one job exceeds `--max-minutes` (default: 30)
-- record the last stable dataset before threshold
-
-This keeps the campaign aligned with local-machine practical limits.
+Parar escalado cuando un job supere `--max-minutes` (default 30); registrar el último dataset estable.

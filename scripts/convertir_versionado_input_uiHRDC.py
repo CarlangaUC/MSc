@@ -233,7 +233,12 @@ def main():
     )
     parser.add_argument("--dataset", default="wiki_100mb")
     parser.add_argument("--input-listas", default="")
-    parser.add_argument("--tuple-output", default="packed", choices=["auto", "global", "packed"])
+    parser.add_argument(
+        "--tuple-output",
+        default="packed",
+        choices=["auto", "global", "packed", "packed64"],
+        help="packed/packed64 = uint64 (master|rel) 40/24; global = docid absoluto",
+    )
     parser.add_argument("--master-bits", type=int, default=40)
     parser.add_argument("--rel-bits", type=int, default=24)
     parser.add_argument("--export-txt", action="store_true", default=False)
@@ -253,7 +258,7 @@ def main():
     input_listas_filename = args.input_listas.strip()
     if not input_listas_filename:
         if dataset.startswith("wiki_"):
-            input_listas_filename = f"listas_wikipedia_zdd_{dataset}_versionada"
+            input_listas_filename = f"listas_{dataset}_versionada"
         else:
             input_listas_filename = f"listas_{dataset}"
 
@@ -279,12 +284,16 @@ def main():
         if inferred.exists():
             page_map_path = inferred
 
+    tuple_output = args.tuple_output
+    if tuple_output == "packed64":
+        tuple_output = "packed"
+
     convert(
         input_path=input_path,
         output_bin=output_bin,
         output_txt=output_txt,
         page_map_path=page_map_path,
-        tuple_output=args.tuple_output,
+        tuple_output=tuple_output,
         master_bits=args.master_bits,
         rel_bits=args.rel_bits,
     )

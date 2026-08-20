@@ -1,5 +1,6 @@
 // Backbone 1 (TdZdd): ZDD^t = union {S_t^i} por termino; version fuera del ZDD.
 // Compilar: g++ -O2 -std=c++17 -fopenmp -o script_versionado_test_tdzdd script_versionado_test_tdzdd.cpp -I ./TdZdd/include -lpthread
+// Fase 2 (persistir ZDD^t): g++ ... -DCREAR_LISTA_PUNTEROS_ZDD=1 ...
 
 #include <tdzdd/DdSpec.hpp>
 #include <tdzdd/DdSpecOp.hpp>
@@ -17,6 +18,8 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <memory>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -29,6 +32,11 @@
 
 #ifndef NZDD_ZDD_DOC_LEVEL_OFFSET
 #define NZDD_ZDD_DOC_LEVEL_OFFSET 1
+#endif
+
+// 1 = mantener listaTerminosZdd[t] = ZDD^t en RAM; 0 = Fase 1 (solo metricas, descarta diagrama).
+#ifndef CREAR_LISTA_PUNTEROS_ZDD
+#define CREAR_LISTA_PUNTEROS_ZDD 0
 #endif
 
 // PathSpec de un solo conjunto (niveles ya con offset master+1).
@@ -255,6 +263,7 @@ static DocsIndex buildDocsIndex(const std::string& docsPath) {
     return idx;
 }
 
+// Estructura para las metricas 
 struct TermMetrics {
     uint32_t nVersions = 0;
     uint32_t nSnapshots = 0;
@@ -344,11 +353,55 @@ static tdzdd::DdStructure<2> buildWordFamilyZdd(const std::vector<uint64_t>& pos
     return family;
 }
 
+// Estructura para las metricas de los terminos
 struct TermRow {
     TermMetrics metrics;
     bool built = false;
 };
 
+#if CREAR_LISTA_PUNTEROS_ZDD
+static std::vector<uint64_t> mastersOfZdd(const tdzdd::DdStructure<2>& z) {
+    std::set<uint64_t> acc;
+    for (auto const& comb : z) {
+        for (int lvl : comb) {
+            if (lvl >= NZDD_ZDD_DOC_LEVEL_OFFSET)
+                acc.insert(static_cast<uint64_t>(lvl - NZDD_ZDD_DOC_LEVEL_OFFSET));
+        }
+    }
+    return std::vector<uint64_t>(acc.begin(), acc.end());
+}
+
+static void navegarTermino(const std::vector<std::unique_ptr<tdzdd::DdStructure<2>>>& lista,
+                           uint32_t t, const Vocabulary& voc) {
+    std::string word = (voc.loaded && t < voc.nwords) ? voc.words[t] : "";
+    std::cout << "term_id=" << t;
+    if (!word.empty()) std::cout << " palabra='" << word << "'";
+    std::cout << std::endl;
+
+    if (t >= lista.size() || lista[t] == nullptr) {
+        std::cout << "ZDD^t: vacio (sin ocurrencias)" << std::endl;
+        return;
+    }
+    const tdzdd::DdStructure<2>& z = *lista[t];
+    std::cout << "Nodos: " << z.size() << std::endl;
+    uint64_t card = 0;
+    for (auto const& _ : z) {
+        (void)_;
+        ++card;
+    }
+    std::cout << "|F_t| (subsets): " << card << std::endl;
+    std::vector<uint64_t> mt = mastersOfZdd(z);
+    std::cout << "|M_t|=" << mt.size() << " masters: { ";
+    for (size_t i = 0; i < mt.size() && i < 24; ++i) {
+        std::cout << mt[i];
+        if (i + 1 < mt.size() && i + 1 < 24) std::cout << ", ";
+    }
+    if (mt.size() > 24) std::cout << " ...";
+    std::cout << " }" << std::endl;
+}
+#endif
+
+// Prints de uso
 static void usage(const char* prog) {
     std::cerr << "Uso: " << prog
               << " <docs> [voc] [csv_out] [max_terms] [spot_term_id]\n"
@@ -365,14 +418,17 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    // Lectura de argumentos en terminal
     const std::string docsPath = argv[1];
     const std::string vocPath = (argc >= 3) ? argv[2] : "";
     const std::string csvPath = (argc >= 4) ? argv[3] : "resultados_test/script_versionado_metrics.csv";
     const uint32_t maxTerms = (argc >= 5) ? static_cast<uint32_t>(std::stoul(argv[4])) : 0u;
     const int spotTermId = (argc >= 6) ? std::stoi(argv[5]) : -1;
 
+    // Validacion de la split meta
     validarSplitMeta(docsPath);
 
+    // Carga del vocabulario
     Vocabulary voc;
     if (!vocPath.empty()) {
         if (!loadVocabulary(vocPath, voc)) {
@@ -382,44 +438,69 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    // Construccion del indice de los documentos
     DocsIndex docsIdx = buildDocsIndex(docsPath);
     if (docsIdx.nlists == 0 || docsIdx.listOffsets.empty()) {
         std::cerr << "ERROR: indice invalido para " << docsPath << std::endl;
         return 1;
     }
 
+    // Prints de la split meta
     std::cout << "[INFO] Split empaquetado: " << ZDD_MASTER_BITS << "/" << ZDD_REL_BITS
               << " (master/rel en uint64, sin truncar a 32 bits)\n";
     std::cout << "[INFO] Listas: " << docsIdx.nlists
               << " postings=" << docsIdx.totalPostings << std::endl;
+#if CREAR_LISTA_PUNTEROS_ZDD
+    std::cout << "[INFO] CREAR_LISTA_PUNTEROS_ZDD=1 (persiste ZDD^t en listaTerminosZdd)" << std::endl;
+#else
+    std::cout << "[INFO] CREAR_LISTA_PUNTEROS_ZDD=0 (Fase 1: descarta ZDD tras metricas)" << std::endl;
+#endif
 
+    // Prints de los hilos OpenMP para la parealizacion facil
 #ifdef _OPENMP
     std::cout << "[INFO] OpenMP hilos: " << omp_get_max_threads() << std::endl;
 #else
     std::cout << "[WARN] Compilado sin OpenMP (-fopenmp); corrida secuencial" << std::endl;
 #endif
 
+    // Calculo del limite de terminos a procesar
     const uint32_t limit = (maxTerms > 0 && maxTerms < docsIdx.nlists) ? maxTerms : docsIdx.nlists;
 
+    // Vector de metricas
     std::vector<TermRow> rows(limit);
+#if CREAR_LISTA_PUNTEROS_ZDD
+    std::vector<std::unique_ptr<tdzdd::DdStructure<2>>> listaTerminosZdd(limit);
+#endif
 
     tdzdd::ResourceUsage usageStart;
     auto t0 = std::chrono::steady_clock::now();
 
+
+    // OpenMP: parse postings por termino
 #ifdef _OPENMP
 #pragma omp parallel for schedule(dynamic, 16)
 #endif
     for (int t = 0; t < static_cast<int>(limit); ++t) {
+        // Lectura de los postings por termino
         std::vector<uint64_t> postings;
         if (!readPostingListAt(docsPath, docsIdx.listOffsets[static_cast<uint32_t>(t)], postings)) {
             continue;
         }
 
+        // Construccion de la familia ZDD por termino
         TermMetrics m;
         tdzdd::DdStructure<2> family = buildWordFamilyZdd(postings, m);
 
+        // Almacenamiento de las metricas por termino
         rows[static_cast<uint32_t>(t)].metrics = m;
         rows[static_cast<uint32_t>(t)].built = true;
+
+#if CREAR_LISTA_PUNTEROS_ZDD
+        if (m.nSnapshots > 0) {
+            listaTerminosZdd[static_cast<uint32_t>(t)] =
+                std::make_unique<tdzdd::DdStructure<2>>(std::move(family));
+        }
+#endif
     }
 
     auto t1 = std::chrono::steady_clock::now();
@@ -437,7 +518,7 @@ int main(int argc, char* argv[]) {
     uint64_t sumNodes = 0;
     size_t sumBytes = 0;
     uint32_t termsBuilt = 0;
-
+    
     for (uint32_t t = 0; t < limit; ++t) {
         if (!rows[t].built) {
             std::cerr << "ERROR: term " << t << " no procesado" << std::endl;
@@ -454,14 +535,36 @@ int main(int argc, char* argv[]) {
     }
     csv.close();
 
+    const std::string nodesSidecar = csvPath + ".nodes";
+    std::ofstream nodesOut(nodesSidecar);
+    if (nodesOut.is_open()) {
+        for (uint32_t t = 0; t < limit; ++t) {
+            nodesOut << t << " " << rows[t].metrics.nodes << "\n";
+        }
+        nodesOut.close();
+        std::cout << "Nodos sidecar: " << nodesSidecar << std::endl;
+    }
+
+
     tdzdd::DdStructure<2> spotFamily;
+#if CREAR_LISTA_PUNTEROS_ZDD
+    const tdzdd::DdStructure<2>* spotFromLista = nullptr;
+#endif
     if (spotTermId >= 0 && static_cast<uint32_t>(spotTermId) < limit) {
+#if CREAR_LISTA_PUNTEROS_ZDD
+        if (listaTerminosZdd[static_cast<uint32_t>(spotTermId)] != nullptr) {
+            spotFromLista = listaTerminosZdd[static_cast<uint32_t>(spotTermId)].get();
+        }
+#else
         std::vector<uint64_t> postings;
         if (readPostingListAt(docsPath, docsIdx.listOffsets[static_cast<uint32_t>(spotTermId)], postings)) {
             TermMetrics spotMetrics;
             spotFamily = buildWordFamilyZdd(postings, spotMetrics);
         }
+#endif
     }
+
+    // Prints de la memoria y el tiempo de ejecucion
 
     std::cout << "\n=== Resumen ===" << std::endl;
     std::cout << "Terminos procesados: " << termsBuilt << std::endl;
@@ -473,13 +576,32 @@ int main(int argc, char* argv[]) {
               << std::fixed << std::setprecision(2) << (usageDiff.maxrss / 1024.0) << " MB)"
               << std::endl;
     std::cout << "CSV: " << csvPath << std::endl;
+#if CREAR_LISTA_PUNTEROS_ZDD
+    uint32_t termsPersisted = 0;
+    for (uint32_t t = 0; t < limit; ++t) {
+        if (listaTerminosZdd[t] != nullptr) ++termsPersisted;
+    }
+    std::cout << "Lista ZDD^t: " << termsPersisted << "/" << limit << " terminos con diagrama"
+              << std::endl;
+#endif
 
+    // Spot-check de un termino especifico
     if (spotTermId >= 0) {
         std::cout << "\n=== Spot-check term_id=" << spotTermId << " ===" << std::endl;
         if (voc.loaded && static_cast<uint32_t>(spotTermId) < voc.nwords) {
             std::cout << "Palabra: " << voc.words[static_cast<uint32_t>(spotTermId)] << std::endl;
         }
+#if CREAR_LISTA_PUNTEROS_ZDD
+        if (spotFromLista != nullptr) {
+            std::cout << "(desde listaTerminosZdd, sin rebuild)" << std::endl;
+            imprimirReporte(*spotFromLista);
+            navegarTermino(listaTerminosZdd, static_cast<uint32_t>(spotTermId), voc);
+        } else {
+            std::cout << "ZDD^t vacio en lista" << std::endl;
+        }
+#else
         imprimirReporte(spotFamily);
+#endif
     }
 
     return 0;

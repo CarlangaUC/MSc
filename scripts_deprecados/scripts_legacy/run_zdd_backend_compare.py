@@ -51,7 +51,7 @@ def resolve_backend_command(
         if not p:
             return None
         cmd = (
-            f"./scripts/cpp/test_tdzdd_piso1 '{p}' '{m}' 1 13 1730 1000 0 "
+            f"./scripts_deprecados/experimentos_cpp/cpp/test_tdzdd_piso1 '{p}' '{m}' 1 13 1730 1000 0 "
             f"'resultados_test/stress_zdd_compare/{ds['id']}_piso1.csv' {max_terms_double}"
         )
         return cmd, ROOT
