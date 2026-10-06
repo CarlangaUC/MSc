@@ -1,3 +1,4 @@
 #!/bin/sh
-# Drop Cursor co-author trailer so GitHub lists a single contributor.
-grep -v '^Co-authored-by: Cursor <cursoragent@cursor.com>$' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
+# Strip Cursor agent Co-authored-by trailers from commit messages.
+# Match by trailer prefix + "Cursor" so the agent email is not stored in-repo.
+grep -viE '^Co-authored-by:[[:space:]]*Cursor[[:space:]]*<' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
