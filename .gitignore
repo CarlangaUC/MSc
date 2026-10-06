@@ -6,6 +6,7 @@ test
 *.o
 *.out
 *.exe
+edd_metatrie/meta_trie_edd
 
 # --- Archivos de Datos Grandes (por seguridad) ---
 *.docs

@@ -1,0 +1,62 @@
+digraph meta_trie_edd {
+  rankdir=LR;
+  bgcolor="white";
+  pad=0.5;
+  nodesep=0.5;
+  ranksep=0.75;
+  fontname="DejaVu Sans";
+  node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=11, margin="0.2,0.12"];
+  edge [fontname="DejaVu Sans", fontsize=9, color="#444444", arrowsize=0.75];
+
+  in_docs [
+    label="① Archivo .docs\n\nListas por término t\nCada posting: documento u,\nversión τ (packed 64 bit)",
+    fillcolor="#e3f2fd", width=2.2
+  ];
+
+  read [
+    label="② Leer\n\ninspect_docs\nread_posting_list\n+ packed64_io (u, τ)",
+    fillcolor="#eeeeee", width=2.0
+  ];
+
+  build [
+    label=<
+      <B>③ Construir índice</B><BR ALIGN="LEFT"/>
+      <FONT POINT-SIZE="10">
+      build_global <I>o</I> build_per_term<BR/>
+      1. RLE en τ → quads (t,u,τ_a,τ_b)<BR/>
+      2. Barrido → intervalos suelo<BR/>
+      3. Stream time-first → temporal_wm<BR/>
+      4. time_first_trie (SDSL)<BR/>
+      → meta_trie_edd
+      </FONT>
+    >,
+    fillcolor="#fff3e0", width=2.8
+  ];
+
+  query [
+    label="④ Consultar\n\nvalues_at(t, τ)\n→ suelo + leap\n→ snapshot S^τ (masters u)",
+    fillcolor="#e8f5e9", width=2.2
+  ];
+
+  out [
+    label=<
+      <B>⑤ Salir</B><BR ALIGN="LEFT"/>
+      <FONT POINT-SIZE="10">
+      Métricas: bpi_file, build_s<BR/>
+      validate_index (vs .docs)<BR/>
+      Opcional: .emt, .dot, CSV
+      </FONT>
+    >,
+    fillcolor="#ede7f6", width=2.2
+  ];
+
+  note [
+    shape=note,
+    fontsize=9,
+    label="Todo en edd_metatrie/\n(meta_trie_edd.cpp + WM u64)\nSin depender del repo BGPs",
+    fillcolor="#fffde7"
+  ];
+
+  in_docs -> read -> build -> query -> out;
+  note -> build [style=dotted, arrowhead=none, constraint=false];
+}
