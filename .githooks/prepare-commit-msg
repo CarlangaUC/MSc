@@ -1,0 +1,3 @@
+#!/bin/sh
+# Drop Cursor co-author trailer so GitHub lists a single contributor.
+grep -v '^Co-authored-by: Cursor <cursoragent@cursor.com>$' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
