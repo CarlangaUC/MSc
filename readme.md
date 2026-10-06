@@ -12,12 +12,15 @@ uiHRDC (only_list_and_voc) → .docs packed64 → zdd_cudd_plus_t → .zpack / l
 | Documento | Contenido |
 |---|---|
 | **[docs/PIPELINE_UIHRDC_CUDD.md](docs/PIPELINE_UIHRDC_CUDD.md)** | Guía operativa completa: pasos 1–4, modos CLI, arquitectura modular, verify, demo |
+| **[docs/DATOS_SINTETICOS.md](docs/DATOS_SINTETICOS.md)** | Generador sintético, dualidad snapshots/intervalos, barrido U/V/tamaño + guardas OOM |
 | **[docs/BACKBONE_2_LATEX.md](docs/BACKBONE_2_LATEX.md)** | Texto LaTeX Backbone 2 (`u+t` y `log`) |
 | **[docs/METRICAS_LATEX.md](docs/METRICAS_LATEX.md)** | Sección LaTeX bpi: definiciones y tabla `plus_t_bpi_ladder` |
-| **[scripts/README.md](scripts/README.md)** | Notebooks, conversión `.docs`, medidor BPI |
+| **[edd_metatrie/README.md](edd_metatrie/README.md)** | EDD metatrie (intervalos) extraída de BGPs, input `.docs` |
+| **[scripts/README.md](scripts/README.md)** | Notebooks, conversión `.docs`, medidor BPI, sintéticos |
 | **[scripts/stress/README.md](scripts/stress/README.md)** | Stress campaign, dataset ladder |
 | **[scripts_deprecados/README.md](scripts_deprecados/README.md)** | Código histórico (Backbone 1, TdZdd, experimentos) |
 | **`THESIS_CONTEXTO_MAGISTER.md`** | Contexto tesis local (no versionar) |
+| **`datos_sinteticos/`** | Salida canónica de barridos sintéticos (`.docs` / `.zpack` / CSV) |
 
 ## Flujo activo: `zdd_cudd_plus_t`
 
@@ -35,7 +38,7 @@ Un `.zpack` **no almacena** la codificación del tag: `load`/`verify`/`optimize`
 | Fase | Cuándo | Qué hace |
 |---|---|---|
 | **`build`** | Construcción término a término | Inserta `ZDD^t` en un **único `DdManager`** compartido. **No reordena.** |
-| **`optimize`** | **Post-build**, sobre `.zpack` cargado | Permuta **niveles CUDD** en todo el manager (`ReduceHeap` / `ShuffleHeap`). Mide **EDD global** (`cuddEddNodeCount`). |
+| **`optimize`** | **Post-build**, sobre `.zpack` cargado | Permuta **niveles CUDD** en todo el manager (`ReduceHeap` / `ShuffleHeap`). Mide **EDD global** (`cuddForestNodeCount`). |
 
 El arreglo `pointerList[t]` apunta a la raíz de cada término; el reordenamiento no “ordena el arreglo”, sino el **DAG compartido** debajo. CUDD tiene autoreorden desactivado en build (`Cudd_AutodynDisableZdd` en `nzdd_cudd_common.h`).
 
@@ -162,6 +165,10 @@ Salida en **`resultados_test/heuristics_check/`**:
 
 Toda la aritmética vive en [`plus_t/utils/bpi.h`](plus_t/utils/bpi.h) (`NzddBpi::compute()`). Escaneo de denominadores: [`plus_t/utils/bpi_scan.h`](plus_t/utils/bpi_scan.h).
 
+Flujo completo de `bpi_edd`, del `.zpack` y el `.docs` hasta el número — fuente en [`docs/bpi_edd_flujo.dot`](docs/bpi_edd_flujo.dot), se regenera con `dot -Tpng -Gdpi=150 docs/bpi_edd_flujo.dot -o docs/bpi_edd_flujo.png`:
+
+![Flujo de cálculo de bpi_edd](docs/bpi_edd_flujo.png)
+
 Un posting packed64 es **un** entero: el par `(master, rel)` indivisible (baseline 64 bpi).
 
 ### Denominadores (cuatro formas de contar N)
@@ -173,7 +180,7 @@ Un posting packed64 es **un** entero: el par `(master, rel)` indivisible (baseli
 | **`n_snap_elems`** | Elementos en snapshots **distintos** (mismo criterio que el build) | Lo que el DAG realmente materializa |
 | **`n_masters_uniq`** | Masters distintos por término | Índice sin versionado |
 
-El escaneo profundo (`FullAudit`) es opt-in: `NZDD_BPI_AUDIT=1` en `optimize`/`measure_zpack_bpi`, o `scripts/audit_docs_ints <docs>`.
+El escaneo profundo (`FullAudit`) es la única vía a `n_snap_elems`, y sin él no hay `ratio_raw_over_stored`, que es lo que hace interpretable a `bpi_edd`. Por eso en `measure_zpack_bpi` va **por defecto** (`raw` como tercer argumento, o `NZDD_BPI_AUDIT=0`, lo desactiva). En `optimize` sigue siendo opt-in con `NZDD_BPI_AUDIT=1`, porque ahí lo que interesa es `delta_pct` entre antes y después y el denominador se cancela. También disponible aparte: `scripts/audit_docs_ints <docs>`.
 
 **Artefacto de escala:** `n_raw / n_snap_elems` no es constante (351× en 100 MB, 5.9× en 1 GB, 3.7× en 2 GB). Por eso `bpi_edd` sobre `n_raw` parece caer de 0.51 a 35 bpi al escalar, aunque sobre `n_snap_elems` la curva es plana (~130 bpi). Reportar solo `n_raw` mezcla compresión real con colapso de redundancia del denominador.
 
@@ -185,19 +192,23 @@ El escaneo profundo (`FullAudit`) es opt-in: `NZDD_BPI_AUDIT=1` en `optimize`/`m
 | **bpi_file** | `\|.zpack\|` (20 B/nodo en disco) | Persistencia |
 | **bpi_mem** / **bpi_build** | `Cudd_ReadMemoryInUse` | Diagnóstico (proceso completo, pre-trim en build) |
 
-De los 32 B de `DdNode` sólo 20 son información del DAG (`index` u32 + dos punteros); `ref` y `next` son bookkeeping del motor de construcción. `edd_nodes = pool − cadena_univ` (`cuddEddNodeCount`).
+De los 32 B de `DdNode` sólo 20 son información del DAG (`index` u32 + dos punteros); `ref` y `next` son bookkeeping del motor de construcción. `edd_nodes` es el conteo **exacto por alcanzabilidad** desde las raíces (`cuddForestNodeCount`, sobre `Cudd_SharingSize`); la resta `pool − cadena_univ` (`cuddEddNodeCount`) queda como control cruzado en `edd_nodes_pool`. Difieren en los terminales alcanzables: +2 a 100 MB, +1 a 1–2 GB.
+
+**Cuidado al comparar `bpi_edd` entre escalas.** El ZDD deduplica snapshots, así que `n_raw` cuenta postings que la estructura colapsa, y el factor de deduplicación se desploma con la escala: 351× a 100 MB, 5.86× a 1 GB, 3.74× a 2 GB. Eso solo mueve `bpi_edd` de 0.51 a 35.2. La métrica intrínseca es `bpi_edd_over_stored` (sobre `n_snap_elems`): 178.9 → 125.0 → 131.8. Reportar siempre `ratio_raw_over_stored` al lado.
 
 ### Cotas de encoding
 
-Derivadas de `edd_nodes` (N) y `numZddVars` (V) — no se miden. Ya **no** requieren `NZDD_BPI_AUDIT`.
+Derivadas de `edd_nodes` (N) y `levels_used` (L) — no se miden. Ya **no** requieren `NZDD_BPI_AUDIT`.
 
 | Métrica | Bits totales | 2 GB opt |
 |---------|--------------|----------|
-| **bpi_zdd_std** | `2N⌈log₂(N+1)⌉ + N⌈log₂(V+1)⌉` | 7.00 |
-| **bpi_level_grouped** | `2N⌈log₂(N+1)⌉ + V⌈log₂(N+1)⌉` | 5.51 |
-| **bpi_dag_counting** | `2·log₂((N+1)!) + V⌈log₂(N+1)⌉` | 5.12 |
+| **bpi_zdd_std** | `2N⌈log₂(N+1)⌉ + N⌈log₂(L+1)⌉` | 7.00 |
+| **bpi_level_grouped** | `2N⌈log₂(N+1)⌉ + L⌈log₂(N+1)⌉` | 5.51 |
+| **bpi_dag_counting** | `2·log₂((N+1)!) + L⌈log₂(N+1)⌉` | 5.12 |
 
-`bpi_zdd_std` **no es una cota inferior**: es la línea base *standard ZDD* de la literatura (Matsuda–Denzumi–Sadakane 2021), por debajo de la cual quedan DenseZDD y Top ZDD. El piso real es `bpi_dag_counting`. La clave `bpi_edd_min` se mantiene como alias de `bpi_zdd_std`. Detalle, valores por escala y comparación con PEF/OptPFD en [`docs/METRICAS_LATEX.md`](docs/METRICAS_LATEX.md).
+`L` son los niveles que el DAG ocupa de verdad, exactos vía `varIndex` distintos del `.zpack` (`countNonEmptyLevels`). Medido: `L = numZddVars − 1` en los seis puntos del ladder, así que no cambia nada — el campo existe para dejar probado que las cotas no cobran niveles vacíos. `optimize` no tiene el `.zpack` a mano y usa `numZddVars`, marcándolo con `levels_exact=0`.
+
+`bpi_zdd_std` **no es una cota inferior**: es la línea base *standard ZDD* de la literatura (Matsuda–Denzumi–Sadakane 2021), por debajo de la cual quedan DenseZDD y Top ZDD. El piso real es `bpi_dag_counting`. Las claves `bpi_edd_min` (alias literal de `bpi_zdd_std`) y `bits_per_stored_elem` (idéntica a `bpi_edd_over_stored`) fueron **eliminadas**. Detalle, valores por escala y comparación con PEF/OptPFD en [`docs/METRICAS_LATEX.md`](docs/METRICAS_LATEX.md).
 
 `bpi_mem` incluye caché, subtablas, slots de hash, cadena `univ` y nodos muertos (~97 % overhead en wiki_100mb). Ver desglose en `scripts/measure_zpack_bpi`.
 
@@ -261,7 +272,7 @@ resultados_test/optimize_sweep_wiki_2gb_plus_t_bin_COMPLETE.csv
 | [`plus_t/cmd/heuristics_check.h`](plus_t/cmd/heuristics_check.h) | Modo `heuristics-check`: toy + verificación semántica + DOT/PNG |
 | [`plus_t/cmd/optimize.h`](plus_t/cmd/optimize.h) | Reordenamiento + sweep + timeout + CSV |
 | [`plus_t/export/export.h`](plus_t/export/export.h) | Save, spot-check, consultas verify |
-| [`nzdd_cudd_common.h`](nzdd_cudd_common.h) | I/O `.voc`/`.docs`, `cuddEddNodeCount`, config CUDD |
+| [`nzdd_cudd_common.h`](nzdd_cudd_common.h) | I/O `.voc`/`.docs`, `cuddForestNodeCount`, config CUDD |
 | [`nzdd_cudd_pack.h`](nzdd_cudd_pack.h) | Formato `.zpack` v1/v2 (`invPerm` tras reorder) |
 | [`plus_t/utils/bpi.h`](plus_t/utils/bpi.h) | **BPI centralizado**: `compute`, `printReport` |
 | [`plus_t/utils/bpi_scan.h`](plus_t/utils/bpi_scan.h) | Escaneo de denominadores sobre `.docs` |

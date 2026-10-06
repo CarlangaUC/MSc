@@ -212,10 +212,34 @@ inline void configureCuddManager(DdManager* dd) {
 // Nodos que pertenecen al DAG y no al andamiaje del manager. Cudd_Init crea la
 // cadena univ (1 nodo ZDD por variable), que queda contada en el pool aunque no
 // forme parte de ningun ZDD^t: en modo u+t son V nodos, ~48% del pool a 100 MB.
+//
+// Es una medida del POOL: parte del total vivo y resta un proxy de univ. Vale
+// mientras univ tenga exactamente 1 nodo por variable y no queden residuos de
+// operaciones temporales, pero depende del estado del recolector. Para el numero
+// que se reporta, preferir cuddForestNodeCount.
 inline long cuddEddNodeCount(DdManager* dd) {
     const long pool = Cudd_zddReadNodeCount(dd);
     const long univ = static_cast<long>(Cudd_ReadZddSize(dd));
     return (pool > univ) ? (pool - univ) : pool;
+}
+
+// Nodos distintos alcanzables desde las raices del bosque: la definicion exacta
+// del DAG compartido. No resta del pool, asi que no depende del recolector ni de
+// residuos. Cudd_SharingSize marca y desmarca el bit de visita en node->next
+// (idiom interno de CUDD, restaurado al salir), por lo que NO es reentrante:
+// llamar solo con el manager en reposo y desde un unico hilo.
+//
+// Cuenta los terminales alcanzables (zero/one), que cuddEddNodeCount no incluye:
+// espera una diferencia de 1-2 nodos entre ambos. Los ceros de roots se filtran
+// porque Cudd_Regular(nullptr) no es valido.
+inline long cuddForestNodeCount(DdManager* dd, const std::vector<DdNode*>& roots) {
+    (void)dd;
+    std::vector<DdNode*> live;
+    live.reserve(roots.size());
+    for (DdNode* r : roots)
+        if (r != nullptr) live.push_back(r);
+    if (live.empty()) return 0;
+    return static_cast<long>(Cudd_SharingSize(live.data(), static_cast<int>(live.size())));
 }
 
 inline bool shouldSavePack(const std::string& path) {

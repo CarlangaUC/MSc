@@ -36,6 +36,40 @@ La celda **ladder** invoca `scripts/measure_zpack_bpi` sobre `.zpack` de `plus_t
 
 Para interpretar el denominador N, `scripts/audit_docs_ints <docs>` (o `measure_zpack_bpi … audit` / `NZDD_BPI_AUDIT=1`) reporta los cuatro denominadores y `ratio_raw_over_stored`.
 
+## Limpieza de wikitext y efecto en BPI
+
+| Script | Función |
+|---|---|
+| **`limpiar_corpus_wiki.py`** | Paso 0: quita wikitext/HTML preservando líneas 1:1; `--backend regex\|mwph\|wtp` |
+| **`comparar_backends_limpieza.py`** | Compara regex vs mwparserfromhell vs wikitextparser en muestra |
+| **`pipeline_limpieza_bpi.sh`** | Orquestador pasos 0→6: limpiar → uiHRDC → `.docs` → ZDD build → BPI baseline → **`optimize`** → BPI optimized |
+
+```bash
+./scripts/pipeline_limpieza_bpi.sh wiki_100mb marcado   # validación rápida
+./scripts/pipeline_limpieza_bpi.sh wiki_2gb marcado     # 2 GB + nodes_desc+sift (default)
+OPTIMIZE=0 ./scripts/pipeline_limpieza_bpi.sh wiki_2gb marcado   # solo baseline
+HEUR=df_desc+sift_conv ./scripts/pipeline_limpieza_bpi.sh wiki_2gb torsen
+BACKEND=mwph ./scripts/pipeline_limpieza_bpi.sh wiki_2gb marcado   # estándar declarable
+```
+
+Niveles: `marcado` (solo quitar marcado) · `torsen` (+ minúsculas, sin puntuación).
+
+Backends (`--backend` o `BACKEND=` en el pipeline):
+
+| Backend | Librería | Uso |
+|---|---|---|
+| `regex` | propio (default producción) | Más agresivo; mejor BPI en nuestros datos |
+| `mwph` | [mwparserfromhell](https://github.com/earwig/mwparserfromhell) | Estándar MediaWiki |
+| `wtp` | [wikitextparser](https://github.com/5j9/wikitextparser) | Estándar alternativo |
+
+```bash
+.venv/bin/pip install mwparserfromhell wikitextparser
+.venv/bin/python3 scripts/comparar_backends_limpieza.py \
+  --input uiHRDC/uiHRDC/data/texts/wiki_100mb.txt --nivel marcado --sample 500
+BACKEND=mwph ./scripts/pipeline_limpieza_bpi.sh wiki_100mb marcado
+```
+Resultados comparativos: [`docs/METRICAS_LATEX.md`](../docs/METRICAS_LATEX.md) § efecto limpieza.
+
 ### Reordenamiento de variables (`optimize`)
 
 El DAG serializado ya es mínimo *para su orden de variables*. Para bajar `bpi_edd` hay que
@@ -94,11 +128,29 @@ python3 scripts/convertir_versionado_input_uiHRDC.py \
 
 Detalle del paso 2: [docs/PIPELINE_UIHRDC_CUDD.md](../docs/PIPELINE_UIHRDC_CUDD.md).
 
+## Datos sintéticos
+
+| Script | Propósito |
+|---|---|
+| `generar_docs_versionados_sinteticos.py` | `.docs`/`.voc` sparse\|toggle, Zipf\|constant, U/V fijos o variables |
+| `packed64_layout.py` | Fuente única master/rel bits (desde `version_packing.h`) |
+| `sweep_synthetic_zdd_limits.sh` | Barrido techos tamaño/U/V + matriz de modos (salida `datos_sinteticos/`) |
+
+Guía: **[docs/DATOS_SINTETICOS.md](../docs/DATOS_SINTETICOS.md)**.
+
+```bash
+PHASES=S,A,B,C SCALE=med MIN_MEM_MB=1800 ./scripts/sweep_synthetic_zdd_limits.sh
+tail -f datos_sinteticos/sweep.log
+```
+
 ## Scripts activos
 
 | Script | Propósito |
 |---|---|
 | `convertir_versionado_input_uiHRDC.py` | `.docs` packed64 (entrada CUDD) |
+| `generar_docs_versionados_sinteticos.py` | Datos sintéticos versionados |
+| `packed64_layout.py` | Layout packed64 compartido |
+| `sweep_synthetic_zdd_limits.sh` | Barrido sintético con guardas OOM |
 | [`../plus_t/utils/bpi.h`](../plus_t/utils/bpi.h) | BPI centralizado (`compute`, `printReport`) |
 | [`../plus_t/utils/bpi_scan.h`](../plus_t/utils/bpi_scan.h) | Escaneo de denominadores sobre `.docs` |
 | `measure_zpack_bpi.cpp` | bpi_edd / bpi_file / bpi_mem post-load + desglose de overhead |

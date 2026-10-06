@@ -1,0 +1,141 @@
+<mxfile host="app.diagrams.net" modified="2026-09-11T17:25:00.000Z" agent="MAGISTER-BGPs" version="22.1.0">
+  <diagram id="bgps-st-op" name="BGPs ST[OP] test">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="rootbox" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3949AB;strokeWidth=2;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="30" y="50" width="1640" height="1120" as="geometry"/>
+        </mxCell>
+        <mxCell id="title" value="BGPs — flujo de test ST[OP] versionado (bgps-temporal-graphs + scripts BGPs/)" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=17;fontStyle=1;fontColor=#3949AB" vertex="1" parent="1">
+          <mxGeometry x="200" y="60" width="1300" height="35" as="geometry"/>
+        </mxCell>
+        <mxCell id="rootlabel" value="/root/MAGISTER/BGPs/" style="text;html=1;strokeColor=none;fillColor=none;align=left;fontSize=12;fontStyle=1;fontColor=#3949AB" vertex="1" parent="1">
+          <mxGeometry x="50" y="95" width="300" height="25" as="geometry"/>
+        </mxCell>
+
+        <!-- Input externo -->
+        <mxCell id="lane_in" value="Input externo (MAGISTER → entra a BGPs)" style="swimlane;horizontal=0;startSize=28;fillColor=#E3F2FD;strokeColor=#1565C0;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="130" width="1600" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="docs_ext" value="wiki_*_uihrdc_packed64.docs&#xa;(fuera de BGPs: resultados_test/)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1565C0;fontStyle=1" vertex="1" parent="lane_in">
+          <mxGeometry x="40" y="45" width="260" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="packed" value="packed64: master|rel&#xa;term_id = índice de posting list" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1565C0" vertex="1" parent="lane_in">
+          <mxGeometry x="340" y="45" width="260" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="why_bgps" value="&lt;b&gt;Por qué en BGPs&lt;/b&gt;&lt;br&gt;• Reutiliza temporal_wm de CLTJ&lt;br&gt;• ST[OP]: S=term, T=rel, O=master&lt;br&gt;• Evita 18 tries y .dat SPOT&lt;br&gt;• Experimento paralelo a plus_t (ZDD)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#C62828;align=left;spacingLeft=8;fontSize=11" vertex="1" parent="lane_in">
+          <mxGeometry x="650" y="35" width="320" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="toy" value="BGPs/make_toy_&#xa;versioned_docs.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#EF6C00;fontSize=11" vertex="1" parent="lane_in">
+          <mxGeometry x="1020" y="45" width="180" height="70" as="geometry"/>
+        </mxCell>
+
+        <!-- bgps-temporal-graphs -->
+        <mxCell id="lane_repo" value="bgps-temporal-graphs/ — repo CLTJ (target build-versioned-op)" style="swimlane;horizontal=0;startSize=28;fillColor=#E8F5E9;strokeColor=#2E7D32;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="290" width="1600" height="420" as="geometry"/>
+        </mxCell>
+        <mxCell id="cmake" value="CMakeLists.txt&#xa;target: build-versioned-op" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A5D6A7;strokeColor=#2E7D32;fontStyle=1;fontSize=11" vertex="1" parent="lane_repo">
+          <mxGeometry x="40" y="50" width="200" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="cli" value="src/build-versioned-op.cpp&#xa;CLI: components input.docs output.opmt" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontStyle=1" vertex="1" parent="lane_repo">
+          <mxGeometry x="40" y="140" width="240" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="inspect" value="inspect_docs()&#xa;read_posting_list()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCEDC8;strokeColor=#689F38;fontSize=11" vertex="1" parent="lane_repo">
+          <mxGeometry x="320" y="140" width="180" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="append" value="versioned_op_metatrie&#xa;append_term() × V" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCEDC8;strokeColor=#689F38;fontSize=11" vertex="1" parent="lane_repo">
+          <mxGeometry x="540" y="140" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="validate" value="validate()&#xa;expected_at vs values_at" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCEDC8;strokeColor=#689F38;fontSize=11" vertex="1" parent="lane_repo">
+          <mxGeometry x="780" y="140" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="opmt" value="sdsl::store_to_file&#xa;→ .opmt" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#F9A825;fontStyle=1" vertex="1" parent="lane_repo">
+          <mxGeometry x="1020" y="140" width="160" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="query" value="Consulta:&#xa;(term, rel) → {masters}&#xa;values_at() + leap()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#F9A825;fontStyle=1;fontSize=11" vertex="1" parent="lane_repo">
+          <mxGeometry x="1220" y="140" width="200" height="70" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="hdr_vom" value="include/versioned_op_metatrie.hpp&#xa;term_index, RLE insert/delete, m_times" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A5D6A7;strokeColor=#2E7D32;fontStyle=1;fontSize=11" vertex="1" parent="lane_repo">
+          <mxGeometry x="320" y="260" width="340" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="hdr_wm" value="include/cltj_temporal_wm.hpp&#xa;VBT compacto B/E, leap(), get_root()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A5D6A7;strokeColor=#2E7D32;fontStyle=1;fontSize=11" vertex="1" parent="lane_repo">
+          <mxGeometry x="700" y="260" width="320" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="n1" value="n=1 (test): T=rel, payload=master&#xa;NO par (master,rel) en WM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=11" vertex="1" parent="lane_repo">
+          <mxGeometry x="1060" y="260" width="280" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="n2" value="n=2 control descartado&#xa;~137 bpi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=11;dashed=1" vertex="1" parent="lane_repo">
+          <mxGeometry x="1380" y="260" width="180" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="flownote" value="append_term: unpack (master,rel) → dedup → RLE por master → eventos → term_index::build() → temporal_wm(components=1, is_partial=false)" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=11;fontColor=#33691E;fontStyle=2" vertex="1" parent="lane_repo">
+          <mxGeometry x="200" y="350" width="1200" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Scripts BGPs -->
+        <mxCell id="lane_py" value="Scripts y salidas en BGPs/ (raíz, no dentro de bgps-temporal-graphs/)" style="swimlane;horizontal=0;startSize=28;fillColor=#FFF3E0;strokeColor=#EF6C00;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="50" y="740" width="1600" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="cmp" value="compare_input_formats.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#EF6C00;fontSize=11" vertex="1" parent="lane_py">
+          <mxGeometry x="40" y="45" width="200" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="insp" value="inspect_docs_para_metatrie.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#EF6C00;fontSize=11" vertex="1" parent="lane_py">
+          <mxGeometry x="270" y="45" width="220" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="spot" value="docs_to_spot_dat.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#EF6C00;fontSize=11" vertex="1" parent="lane_py">
+          <mxGeometry x="520" y="45" width="180" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="runsh" value="run_st_op_n_tuple.sh&#xa;run_input_format_experiments.sh" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#EF6C00;fontSize=11" vertex="1" parent="lane_py">
+          <mxGeometry x="730" y="45" width="260" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="res_opmt" value="resultados_opmt/*.opmt" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#F9A825;fontStyle=1" vertex="1" parent="lane_py">
+          <mxGeometry x="1020" y="45" width="200" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="res_csv" value="resultados_*.csv" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#F9A825;fontStyle=1" vertex="1" parent="lane_py">
+          <mxGeometry x="1250" y="45" width="160" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- CLTJ original -->
+        <mxCell id="lane_orig" value="Pipeline CLTJ original (mismo repo bgps-temporal-graphs/, no usado en test MAGISTER)" style="swimlane;horizontal=0;startSize=28;fillColor=#ECEFF1;strokeColor=#78909C;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="50" y="900" width="900" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="bi" value="build-index.cpp" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8DC;strokeColor=#546E7A;dashed=1;fontSize=11" vertex="1" parent="lane_orig">
+          <mxGeometry x="40" y="45" width="160" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="mt18" value="cltj_index_temporal_metatrie&#xa;(18 tries SPOT/STOP/...)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8DC;strokeColor=#546E7A;dashed=1;fontSize=11" vertex="1" parent="lane_orig">
+          <mxGeometry x="240" y="45" width="240" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="cltj_out" value=".dat SPOT → .cltj" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8DC;strokeColor=#546E7A;dashed=1;fontSize=11" vertex="1" parent="lane_orig">
+          <mxGeometry x="520" y="45" width="180" height="55" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="results" value="Test n=1: wiki_100mb bpi≈2.5 | wiki_2gb bpi≈4.2  ·  Validación 9774/9774 PASS (100MB)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontStyle=1;fontSize=12" vertex="1" parent="1">
+          <mxGeometry x="980" y="920" width="660" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- Edges -->
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#1565C0;strokeWidth=2;" edge="1" parent="1" source="docs_ext" target="cli">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="180" y="280"/><mxPoint x="180" y="280"/></Array></mxGeometry>
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#388E3C;" edge="1" parent="lane_repo" source="cli" target="inspect"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#388E3C;" edge="1" parent="lane_repo" source="inspect" target="append"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#388E3C;" edge="1" parent="lane_repo" source="append" target="validate"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#388E3C;" edge="1" parent="lane_repo" source="validate" target="opmt"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#F9A825;" edge="1" parent="lane_repo" source="opmt" target="query"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#388E3C;dashed=1;" edge="1" parent="lane_repo" source="append" target="hdr_vom"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#388E3C;dashed=1;" edge="1" parent="lane_repo" source="hdr_vom" target="hdr_wm"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#F9A825;strokeWidth=2;" edge="1" parent="1" source="opmt" target="res_opmt">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1120" y="720"/><mxPoint x="1120" y="720"/></Array></mxGeometry>
+        </mxCell>
+        <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#EF6C00;dashed=1;" edge="1" parent="1" source="spot" target="bi">
+          <mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="610" y="880"/><mxPoint x="170" y="880"/></Array></mxGeometry>
+        </mxCell>
+        <mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#78909C;dashed=1;" edge="1" parent="lane_orig" source="bi" target="mt18"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#78909C;dashed=1;" edge="1" parent="lane_orig" source="mt18" target="cltj_out"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

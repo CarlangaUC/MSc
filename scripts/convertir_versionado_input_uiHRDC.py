@@ -8,7 +8,7 @@ Entrada esperada por linea:
   - Versionado (preferido, uiHRDC export): T[42]: 526909256 526909257 ...  (uint64 packed 40/24)
   - Versionado (legacy):                 T[42]: (13,1558) (13,1559) ...
 
-Salida binaria (motor 64 bits, split por defecto 40/24):
+Salida binaria (motor 64 bits; split master/rel según `packed64_layout`):
   [uint32 total_listas]
   para cada lista i en [0..total_listas):
       [uint32 largo]
@@ -21,6 +21,8 @@ import os
 import argparse
 from array import array
 from pathlib import Path
+
+from packed64_layout import MASTER_BITS, PACKED_BITS, REL_BITS
 
 
 LINE_RE = re.compile(r"^\s*T\[(\d+)\]\s*:\s*(.*)$")
@@ -106,8 +108,8 @@ def convert(
     master_bits: int,
     rel_bits: int,
 ):
-    if master_bits + rel_bits != 64:
-        raise ValueError("master_bits + rel_bits debe ser 64")
+    if master_bits + rel_bits != PACKED_BITS:
+        raise ValueError(f"master_bits + rel_bits debe ser {PACKED_BITS}")
 
     total_lists, has_pairs = count_lists(input_path)
     print(f"[INFO] total_listas={total_lists}")
@@ -239,8 +241,8 @@ def main():
         choices=["auto", "global", "packed", "packed64"],
         help="packed/packed64 = uint64 (master|rel) 40/24; global = docid absoluto",
     )
-    parser.add_argument("--master-bits", type=int, default=40)
-    parser.add_argument("--rel-bits", type=int, default=24)
+    parser.add_argument("--master-bits", type=int, default=MASTER_BITS)
+    parser.add_argument("--rel-bits", type=int, default=REL_BITS)
     parser.add_argument("--export-txt", action="store_true", default=False)
     parser.add_argument(
         "--base-texts",

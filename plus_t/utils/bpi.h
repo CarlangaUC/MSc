@@ -19,19 +19,34 @@
 //   bpi_mem     Cudd_ReadMemoryInUse                diagnóstico (proceso completo)
 //
 // Cotas de encoding del mismo DAG, de más laxa a más estricta. Ninguna se mide:
-// se derivan de (edd_nodes, numZddVars). Ver bitsZddStdPerNode y siguientes.
-//   bpi_zdd_std        2N⌈log₂(N+1)⌉ + N⌈log₂(V+1)⌉
-//   bpi_level_grouped  2N⌈log₂(N+1)⌉ + V⌈log₂(N+1)⌉
-//   bpi_dag_counting   2·log₂((N+1)!)  + V⌈log₂(N+1)⌉
+// se derivan de (edd_nodes, levels). Ver bitsZddStdPerNode y siguientes.
+//   bpi_zdd_std        2N⌈log₂(N+1)⌉ + N⌈log₂(L+1)⌉
+//   bpi_level_grouped  2N⌈log₂(N+1)⌉ + L⌈log₂(N+1)⌉
+//   bpi_dag_counting   2·log₂((N+1)!)  + L⌈log₂(N+1)⌉
+//
+// L = niveles que el DAG ocupa de verdad (Numerators::nonEmptyLevels, exacto vía
+// varIndex distintos del .zpack). Si vale 0 se cae a numZddVars.
+//
+// Medido: numZddVars ya era prácticamente exacto, así que L no cambia las cotas.
+// En u+t cada término gasta su propio nivel de tag, de modo que L = V + masters
+// (100 MB: 9774 + 14 = 9788 de 9789 reservados); en log, L = 28 de 29. El campo
+// se mantiene porque convierte ese "prácticamente" en un número medido: deja
+// probado que las cotas no cobran fronteras de niveles que nadie usa.
 //
 // ATENCIÓN — bpi_zdd_std NO es una cota inferior. Es la línea base "standard
 // ZDD" de la literatura de ZDDs compactos (Matsuda–Denzumi–Sadakane, "Storing
 // Set Families More Compactly with Top ZDDs", Algorithms 14(6):172, 2021, que
 // la escribe como 2n⌊log n⌋ + n⌊log c⌋). DenseZDD y Top ZDD quedan POR DEBAJO.
-// Se mantiene el alias de salida bpi_edd_min por compatibilidad de parsers.
 //
 // Denominador principal: n_raw = Total_Ints (suma de postings en .docs).
 // Otros denominadores (n_snap_elems, etc.) viven en bpi_scan.h.
+//
+// CUIDADO al comparar bpi_edd entre datasets: el ZDD deduplica snapshots, así
+// que n_raw cuenta postings que la estructura colapsa, y el factor de
+// deduplicación varía muchísimo (351× en 100 MB, 3.74× en 2 GB). Eso mueve
+// bpi_edd 69× por sí solo. La métrica intrínseca es bpi_edd_over_stored
+// (sobre n_snap_elems), que en el mismo salto va de 178.9 a 131.8. Reporta
+// siempre ratio_raw_over_stored junto a bpi_edd.
 // =============================================================================
 
 #ifndef PLUS_T_UTILS_BPI_H
@@ -72,6 +87,9 @@ struct Numerators {
     uint64_t fileBytes = 0;
     uint64_t memBytes = 0;
     uint32_t numZddVars = 0;
+    // Niveles ocupados de verdad por el DAG (varIndex distintos). 0 = desconocido,
+    // en cuyo caso las cotas usan numZddVars como techo.
+    uint32_t nonEmptyLevels = 0;
 };
 
 struct Report {
@@ -108,7 +126,10 @@ struct Report {
 
     double ratioRawOverStored = 0.0;
     double dedupVersionsOverSnapshots = 0.0;
-    double bitsPerStoredElem = 0.0;
+
+    // Niveles usados en las cotas: nonEmptyLevels si se conoce, numZddVars si no.
+    uint32_t levelsUsedForBounds = 0;
+    bool levelsAreExact = false;
 };
 
 inline uint64_t ceilLog2(uint64_t n) {
@@ -129,24 +150,24 @@ inline uint64_t ceilLog2(uint64_t n) {
 // Línea base "standard ZDD": índice de variable + dos punteros por nodo, cada
 // puntero estrechado a ⌈log₂(N+1)⌉ bits (el +1 cubre el terminal). Equivale a
 // 2n⌊log n⌋ + n⌊log c⌋ de la literatura. NO es una cota inferior.
-inline uint64_t bitsZddStdPerNode(uint64_t eddNodes, uint32_t numZddVars) {
+inline uint64_t bitsZddStdPerNode(uint64_t eddNodes, uint32_t levels) {
     if (eddNodes == 0u) return 0u;
     const uint64_t childBits = 2u * ceilLog2(eddNodes + 1u);
-    const uint64_t varBits = ceilLog2(static_cast<uint64_t>(numZddVars) + 1u);
+    const uint64_t varBits = ceilLog2(static_cast<uint64_t>(levels) + 1u);
     return childBits + varBits;
 }
 
-inline uint64_t bitsZddStdTotal(uint64_t eddNodes, uint32_t numZddVars) {
-    return eddNodes * bitsZddStdPerNode(eddNodes, numZddVars);
+inline uint64_t bitsZddStdTotal(uint64_t eddNodes, uint32_t levels) {
+    return eddNodes * bitsZddStdPerNode(eddNodes, levels);
 }
 
 // En un DD ordenado el índice de variable no hace falta por nodo: basta disponer
-// los nodos agrupados por nivel y guardar V fronteras de nivel. El término de
-// etiquetas pasa de N⌈log₂(V+1)⌉ a V⌈log₂(N+1)⌉, amortizado a ~0 cuando N ≫ V.
-inline uint64_t bitsLevelGroupedTotal(uint64_t eddNodes, uint32_t numZddVars) {
+// los nodos agrupados por nivel y guardar L fronteras de nivel. El término de
+// etiquetas pasa de N⌈log₂(L+1)⌉ a L⌈log₂(N+1)⌉, amortizado a ~0 cuando N ≫ L.
+inline uint64_t bitsLevelGroupedTotal(uint64_t eddNodes, uint32_t levels) {
     if (eddNodes == 0u) return 0u;
     const uint64_t idBits = ceilLog2(eddNodes + 1u);
-    return eddNodes * 2u * idBits + static_cast<uint64_t>(numZddVars) * idBits;
+    return eddNodes * 2u * idBits + static_cast<uint64_t>(levels) * idBits;
 }
 
 // Piso information-theoretic. Con los nodos en orden topológico el nodo i sólo
@@ -155,11 +176,11 @@ inline uint64_t bitsLevelGroupedTotal(uint64_t eddNodes, uint32_t numZddVars) {
 // 2·log₂((N+1)!) ≈ N(2log₂N − 2log₂e), es decir ~2.89 bits/nodo por debajo de
 // bitsZddStdPerNode. Se conserva el índice de nivel porque sigue siendo
 // necesario para reconstruir el orden.
-inline double bitsDagCountingTotal(uint64_t eddNodes, uint32_t numZddVars) {
+inline double bitsDagCountingTotal(uint64_t eddNodes, uint32_t levels) {
     if (eddNodes == 0u) return 0.0;
     const double logFactorial =
         std::lgamma(static_cast<double>(eddNodes) + 2.0) / std::log(2.0);
-    const double levelIndex = static_cast<double>(numZddVars) *
+    const double levelIndex = static_cast<double>(levels) *
                               static_cast<double>(ceilLog2(eddNodes + 1u));
     return 2.0 * logFactorial + levelIndex;
 }
@@ -193,9 +214,14 @@ inline Report compute(const Numerators& num, const Denominators& denom) {
     r.bytesFile = num.fileBytes;
     r.bytesMem = num.memBytes;
 
-    r.bitsZddStdTotal = bitsZddStdTotal(num.eddNodes, num.numZddVars);
-    r.bitsLevelGroupedTotal = bitsLevelGroupedTotal(num.eddNodes, num.numZddVars);
-    r.bitsDagCountingTotal = bitsDagCountingTotal(num.eddNodes, num.numZddVars);
+    // Niveles reales si se conocen; si no, numZddVars como techo conservador.
+    r.levelsAreExact = (num.nonEmptyLevels > 0u);
+    r.levelsUsedForBounds = r.levelsAreExact ? num.nonEmptyLevels : num.numZddVars;
+    const uint32_t levels = r.levelsUsedForBounds;
+
+    r.bitsZddStdTotal = bitsZddStdTotal(num.eddNodes, levels);
+    r.bitsLevelGroupedTotal = bitsLevelGroupedTotal(num.eddNodes, levels);
+    r.bitsDagCountingTotal = bitsDagCountingTotal(num.eddNodes, levels);
 
     r.bitsPerNodeZddStd =
         perNode(static_cast<double>(r.bitsZddStdTotal), num.eddNodes);
@@ -221,7 +247,6 @@ inline Report compute(const Numerators& num, const Denominators& denom) {
         if (denom.nSnapElems > 0u) {
             r.ratioRawOverStored =
                 static_cast<double>(nRaw) / static_cast<double>(denom.nSnapElems);
-            r.bitsPerStoredElem = bpiFromBytes(r.bytesEdd, denom.nSnapElems);
         }
         if (denom.snapshotsDistinct > 0u) {
             r.dedupVersionsOverSnapshots =
@@ -248,10 +273,10 @@ inline void printReport(std::ostream& out, const Report& r) {
         out << "bpi_edd_over_stored=" << r.bpiEddOverStored << "\n";
         out << "bpi_edd_over_masters=" << r.bpiEddOverMasters << "\n";
         out << "bpi_zdd_std_over_stored=" << r.bpiZddStdOverStored << "\n";
-        out << "bpi_edd_min_over_stored=" << r.bpiZddStdOverStored << "\n";
-        out << "bits_per_stored_elem=" << r.bitsPerStoredElem << "\n";
     }
     out << "numZddVars=" << r.num.numZddVars << "\n";
+    out << "levels_used=" << r.levelsUsedForBounds << "\n";
+    out << "levels_exact=" << (r.levelsAreExact ? 1 : 0) << "\n";
     out << "edd_nodes=" << r.num.eddNodes << "\n";
     out << "node_bytes=" << kDdNodeBytes << "\n";
     out << "bytes_edd=" << r.bytesEdd << "\n";
@@ -269,7 +294,6 @@ inline void printReport(std::ostream& out, const Report& r) {
     out << "bpi_zdd_std=" << std::setprecision(8) << r.bpiZddStd << "\n";
     out << "bpi_level_grouped=" << r.bpiLevelGrouped << "\n";
     out << "bpi_dag_counting=" << r.bpiDagCounting << "\n";
-    out << "bpi_edd_min=" << r.bpiZddStd << "\n";  // alias legacy de bpi_zdd_std
 
     if (r.bpiEdd > 0.0)
         out << "compression_vs_raw=" << std::setprecision(6) << r.compressionVsRaw << "\n";
@@ -285,10 +309,10 @@ inline void printAuditReport(std::ostream& out, const std::string& docsPath, con
 }
 
 inline std::string csvHeader() {
-    return "total_ints,bpi_edd,bpi_file,bpi_mem,bpi_edd_min,edd_nodes,"
+    return "total_ints,bpi_edd,bpi_file,bpi_mem,edd_nodes,levels_used,levels_exact,"
            "bpi_zdd_std,bpi_level_grouped,bpi_dag_counting,"
            "bits_per_node_zdd_std,bits_per_node_level_grouped,bits_per_node_counting,"
-           "ratio_raw_over_stored,bpi_edd_over_stored,bpi_edd_min_over_stored";
+           "ratio_raw_over_stored,bpi_edd_over_stored,bpi_zdd_std_over_stored";
 }
 
 inline std::string csvRow(const Report& r) {
@@ -297,8 +321,9 @@ inline std::string csvRow(const Report& r) {
         << std::setprecision(8) << r.bpiEdd << ','
         << r.bpiFile << ','
         << r.bpiMem << ','
-        << r.bpiZddStd << ','  // columna legacy bpi_edd_min
         << r.num.eddNodes << ','
+        << r.levelsUsedForBounds << ','
+        << (r.levelsAreExact ? 1 : 0) << ','
         << r.bpiZddStd << ','
         << r.bpiLevelGrouped << ','
         << r.bpiDagCounting << ','

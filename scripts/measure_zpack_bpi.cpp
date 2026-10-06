@@ -28,14 +28,25 @@ int main(int argc, char** argv) {
     }
     const std::string packPath = argv[1];
     const std::string docsPath = argv[2];
-    const bool doAudit = (argc >= 4 && std::string(argv[3]) == "audit") ||
-                         (std::getenv("NZDD_BPI_AUDIT") != nullptr &&
-                          std::string(std::getenv("NZDD_BPI_AUDIT")) == "1");
+    // El escaneo profundo es la unica via a n_snap_elems, y sin el no hay
+    // ratio_raw_over_stored: sin ese ratio, bpi_edd no es interpretable entre
+    // datasets. Por eso va por defecto; "raw" lo desactiva si estorba.
+    const bool doAudit = !((argc >= 4 && std::string(argv[3]) == "raw") ||
+                           (std::getenv("NZDD_BPI_AUDIT") != nullptr &&
+                            std::string(std::getenv("NZDD_BPI_AUDIT")) == "0"));
 
     DdManager* dd = nullptr;
     std::vector<DdNode*> roots;
     int numZddVars = 0, docOffset = 0;
     if (!ZddPack::loadZddPack(dd, roots, numZddVars, docOffset, packPath)) return 1;
+
+    // Segunda lectura del pack solo para los varIndex: da los niveles ocupados
+    // exactos, que aprietan las cotas que dependen de L.
+    uint32_t nonEmptyLevels = 0;
+    {
+        ZddPack::ZddPackData pd;
+        if (ZddPack::readZddPackFile(packPath, pd)) nonEmptyLevels = ZddPack::countNonEmptyLevels(pd);
+    }
 
     const uint32_t termsMeasured = static_cast<uint32_t>(roots.size());
     const NzddBpi::DenomMode mode =
@@ -50,8 +61,12 @@ int main(int argc, char** argv) {
     }
 
     const long poolNodes = Cudd_zddReadNodeCount(dd);
-    const long eddNodes = NzddCommon::cuddEddNodeCount(dd);
-    const long univNodes = poolNodes - eddNodes;
+    const long eddNodesPool = NzddCommon::cuddEddNodeCount(dd);
+    const long univNodes = poolNodes - eddNodesPool;
+    // Conteo exacto por alcanzabilidad. Es el que se reporta; el del pool queda
+    // como control cruzado (difieren en los terminales, 1-2 nodos).
+    const long eddNodesExact = NzddCommon::cuddForestNodeCount(dd, roots);
+    const long eddNodes = (eddNodesExact > 0) ? eddNodesExact : eddNodesPool;
 
     std::ifstream in(packPath, std::ios::binary | std::ios::ate);
     const uint64_t fileBytes = static_cast<uint64_t>(in.tellg());
@@ -63,6 +78,7 @@ int main(int argc, char** argv) {
     num.fileBytes = fileBytes;
     num.memBytes = bytesCudd;
     num.numZddVars = static_cast<uint32_t>(numZddVars);
+    num.nonEmptyLevels = nonEmptyLevels;
 
     const NzddBpi::Report rep = NzddBpi::compute(num, denom);
 
@@ -87,6 +103,9 @@ int main(int argc, char** argv) {
     std::cout << "bytes_cache=" << bytesCache << "\n";
     std::cout << "bytes_subtables=" << bytesSubtables << "\n";
     std::cout << "bytes_hash_slots=" << bytesHashSlots << "\n";
+    std::cout << "edd_nodes_exact=" << eddNodesExact << "\n";
+    std::cout << "edd_nodes_pool=" << eddNodesPool << "\n";
+    std::cout << "edd_nodes_delta=" << (eddNodesExact - eddNodesPool) << "\n";
     std::cout << "univ_nodes=" << univNodes << "\n";
     std::cout << "bytes_univ=" << bytesUniv << "\n";
     std::cout << "dead_nodes=" << deadNodes << "\n";

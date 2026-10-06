@@ -1,0 +1,161 @@
+<mxfile host="app.diagrams.net" modified="2026-09-11T17:15:00.000Z" agent="MAGISTER" version="22.1.0" type="device">
+  <diagram id="flujo-st-op" name="Flujo ST[OP] n=1">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Title -->
+        <mxCell id="title" value="Flujo ST[OP] n=1 — test con input MAGISTER (.docs packed64)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=18;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="200" y="20" width="1200" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Lane 1 -->
+        <mxCell id="lane1" value="1. Fuentes de input" style="swimlane;horizontal=0;startSize=30;fillColor=#E3F2FD;strokeColor=#37474F;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="1520" height="220" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="uihrdc" value="uiHRDC&#xa;Wikipedia" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1565C0;fontStyle=1" vertex="1" parent="lane1">
+          <mxGeometry x="50" y="60" width="140" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="export" value="export / pipeline&#xa;uiHRDC" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#BBDEFB;strokeColor=#1565C0" vertex="1" parent="lane1">
+          <mxGeometry x="240" y="60" width="160" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="docs" value=".docs packed64 (canónico)&#xa;master|rel por término&#xa;S = term_id (externo)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#90CAF9;strokeColor=#0D47A1;fontStyle=1" vertex="1" parent="lane1">
+          <mxGeometry x="460" y="45" width="220" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="docsfmt" value="Formato: uint32 nlists +&#xa;(uint32 len, uint64[len])" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontSize=11" vertex="1" parent="lane1">
+          <mxGeometry x="460" y="155" width="220" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="texto" value="Texto T[t]:&#xa;(m,r) o packed" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#EF6C00;fontSize=11" vertex="1" parent="lane1">
+          <mxGeometry x="50" y="150" width="140" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="conv" value="convertir_versionado&#xa;_input_uiHRDC.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE0B2;strokeColor=#EF6C00;fontSize=11" vertex="1" parent="lane1">
+          <mxGeometry x="240" y="150" width="160" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Why box -->
+        <mxCell id="why" value="&lt;b&gt;Por qué .docs packed64&lt;/b&gt;&lt;br&gt;• Lossless: cada posting es (master, rel)&lt;br&gt;• rel → eje T (versión)&lt;br&gt;• master → payload O&lt;br&gt;• NO se guarda par en WM (n=1)&lt;br&gt;• Sin conversión intermedia&lt;br&gt;• RLE ~78× eventos (100 MB)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#C62828;align=left;spacingLeft=8;fontSize=11" vertex="1" parent="lane1">
+          <mxGeometry x="1100" y="45" width="380" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="unpack" value="unpack: master = packed &gt;&gt; 24&#xa;rel = packed &amp; 0xFFFFFF" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#1565C0;fontSize=11;fontColor=#1565C0" vertex="1" parent="lane1">
+          <mxGeometry x="720" y="80" width="220" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Lane 2 Build -->
+        <mxCell id="lane2" value="2. Build C++ (canónico)" style="swimlane;horizontal=0;startSize=30;fillColor=#E8F5E9;strokeColor=#37474F;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="320" width="1520" height="240" as="geometry"/>
+        </mxCell>
+        <mxCell id="cli" value="build-versioned-op&#xa;CLI (n=1)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#A5D6A7;strokeColor=#2E7D32;fontStyle=1" vertex="1" parent="lane2">
+          <mxGeometry x="50" y="70" width="150" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="inspect" value="inspect_docs()&#xa;offsets, max_master, bits" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=11" vertex="1" parent="lane2">
+          <mxGeometry x="240" y="70" width="170" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="append" value="append_term() × V&#xa;dedup + RLE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=11" vertex="1" parent="lane2">
+          <mxGeometry x="450" y="70" width="170" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="rle" value="Eventos insert/delete&#xa;T=rel, payload=master" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=11" vertex="1" parent="lane2">
+          <mxGeometry x="660" y="70" width="170" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="tindex" value="term_index::build()&#xa;m_times + m_last_update" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=11" vertex="1" parent="lane2">
+          <mxGeometry x="870" y="70" width="190" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="vwm" value="temporal_wm&#xa;VBT B/E (SDSL)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#388E3C;fontSize=11" vertex="1" parent="lane2">
+          <mxGeometry x="1100" y="70" width="170" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="opmt" value="serialize → .opmt" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#F9A825;fontStyle=1" vertex="1" parent="lane2">
+          <mxGeometry x="1310" y="70" width="170" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="n1note" value="n=1 recomendado: T=rel, O=master — NO par (master,rel) en WM&#xa;n=2 control (descartado): duplica rel en T y payload → ~137 bpi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFCDD2;strokeColor=#C62828;fontSize=11" vertex="1" parent="lane2">
+          <mxGeometry x="450" y="170" width="620" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Lane 3 Validation -->
+        <mxCell id="lane3" value="3. Validación y métricas" style="swimlane;horizontal=0;startSize=30;fillColor=#F3E5F5;strokeColor=#37474F;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="580" width="1520" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="val" value="validate()&#xa;expected_at vs values_at" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1BEE7;strokeColor=#7B1FA2;fontSize=11" vertex="1" parent="lane3">
+          <mxGeometry x="50" y="60" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="rt" value="round-trip&#xa;load .opmt + re-validate" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1BEE7;strokeColor=#7B1FA2;fontSize=11" vertex="1" parent="lane3">
+          <mxGeometry x="290" y="60" width="200" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="cmp" value="compare_input_formats.py&#xa;pairs == expand(RLE)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1BEE7;strokeColor=#7B1FA2;fontSize=11" vertex="1" parent="lane3">
+          <mxGeometry x="530" y="60" width="220" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="bpi" value="BPI + CSV&#xa;bytes×8 / n_raw" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#F9A825;fontStyle=1" vertex="1" parent="lane3">
+          <mxGeometry x="790" y="60" width="180" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="query" value="Consulta: (term, rel) → {masters}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF9C4;strokeColor=#F9A825;fontStyle=1" vertex="1" parent="lane3">
+          <mxGeometry x="1010" y="60" width="240" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="results" value="Resultados n=1: 100MB bpi≈2.5 | 1GB≈4.4 | 2GB≈4.2&#xa;Validación 100MB exhaustiva: 9774/9774 PASS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontStyle=1;fontSize=11" vertex="1" parent="lane3">
+          <mxGeometry x="790" y="145" width="460" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- Alt path -->
+        <mxCell id="altlane" value="Alternativa (no tesis)" style="swimlane;horizontal=0;startSize=30;fillColor=#ECEFF1;strokeColor=#78909C;fontStyle=2" vertex="1" parent="1">
+          <mxGeometry x="40" y="800" width="600" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="dat" value=".dat SPOT&#xa;docs_to_spot_dat.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8DC;strokeColor=#546E7A;fontSize=11;dashed=1" vertex="1" parent="altlane">
+          <mxGeometry x="50" y="50" width="180" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="cltj" value="build-index → .cltj&#xa;(18 tries CLTJ)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#CFD8DC;strokeColor=#546E7A;fontSize=11;dashed=1" vertex="1" parent="altlane">
+          <mxGeometry x="280" y="50" width="180" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Edges lane1 -->
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#1565C0;" edge="1" parent="lane1" source="uihrdc" target="export"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#1565C0;" edge="1" parent="lane1" source="export" target="docs"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#EF6C00;dashed=1;" edge="1" parent="lane1" source="texto" target="conv"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#EF6C00;dashed=1;" edge="1" parent="lane1" source="conv" target="docs"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#1565C0;" edge="1" parent="lane1" source="docs" target="unpack"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- Edges lane2 -->
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;strokeWidth=2;" edge="1" parent="lane2" source="cli" target="inspect"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;" edge="1" parent="lane2" source="inspect" target="append"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;" edge="1" parent="lane2" source="append" target="rle"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;" edge="1" parent="lane2" source="rle" target="tindex"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;" edge="1" parent="lane2" source="tindex" target="vwm"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;" edge="1" parent="lane2" source="vwm" target="opmt"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- Cross-lane: docs to cli -->
+        <mxCell id="e12" value="n=1 directo" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;strokeWidth=2;fontStyle=2" edge="1" parent="1" source="docs" target="cli">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570" y="310"/>
+              <mxPoint x="165" y="310"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- opmt to validation -->
+        <mxCell id="e13" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#7B1FA2;" edge="1" parent="1" source="opmt" target="val">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1435" y="570"/>
+              <mxPoint x="190" y="570"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e14" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#7B1FA2;" edge="1" parent="lane3" source="val" target="rt"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e15" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#7B1FA2;" edge="1" parent="lane3" source="rt" target="cmp"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e16" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#7B1FA2;" edge="1" parent="lane3" source="cmp" target="bpi"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e17" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#7B1FA2;" edge="1" parent="lane3" source="bpi" target="query"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+        <!-- Alt dashed -->
+        <mxCell id="e18" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#78909C;dashed=1;" edge="1" parent="1" source="docs" target="dat">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="570" y="780"/>
+              <mxPoint x="170" y="780"/>
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e19" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#78909C;dashed=1;" edge="1" parent="altlane" source="dat" target="cltj"><mxGeometry relative="1" as="geometry"/></mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

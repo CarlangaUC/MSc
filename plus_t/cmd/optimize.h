@@ -86,6 +86,10 @@ inline NzddBpi::Denominators scanDocsForOptimize(const std::string& docsPath,
         bpiAuditEnabled() ? NzddBpi::DenomMode::FullAudit : NzddBpi::DenomMode::RawOnly);
 }
 
+// nonEmptyLevels se deja en 0 a proposito: aqui no hay ZddPackData a mano y la
+// medicion dice que numZddVars ya es practicamente el conteo real (9788 de 9789
+// en u+t, 28 de 29 en log), asi que el techo mueve las cotas <0.01%. El informe
+// lo declara con levels_exact=0, de modo que la aproximacion queda a la vista.
 inline NzddBpi::Numerators numeratorsFromEdd(DdManager* dd, long eddNodes) {
     NzddBpi::Numerators num{};
     num.eddNodes = static_cast<uint64_t>(eddNodes);
@@ -318,14 +322,14 @@ inline Result optimizeForest(DdManager* dd, std::vector<DdNode*>& roots, int doc
         return r;
     }
 
-    r.eddBefore = NzddCommon::cuddEddNodeCount(dd);
+    r.eddBefore = NzddCommon::cuddForestNodeCount(dd, roots);
     const std::vector<double> sumBefore = familyChecksums(dd, roots);
 
     const auto t0 = std::chrono::steady_clock::now();
     r.ok = applyHeuristic(dd, docOffset, docsPath, heur, maxSiftVars, roots);
     r.seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
 
-    r.eddAfter = NzddCommon::cuddEddNodeCount(dd);
+    r.eddAfter = NzddCommon::cuddForestNodeCount(dd, roots);
     const std::vector<double> sumAfter = familyChecksums(dd, roots);
     r.semanticsOk = checksumsEqual(sumBefore, sumAfter);
 
@@ -435,8 +439,8 @@ static const char* optimizeCsvHeader() {
            "bpi_edd_before,bpi_edd_after,bpi_file_before,bpi_file_after,"
            "seconds,semantics_ok,reorder_ok,status,reject_reason,"
            "roundtrip_edd,roundtrip_pct,"
-           "bpi_edd_min,bpi_zdd_std,bpi_level_grouped,bpi_dag_counting,"
-           "ratio_raw_over_stored,bpi_edd_over_stored,bpi_edd_min_over_stored\n";
+           "levels_used,levels_exact,bpi_zdd_std,bpi_level_grouped,bpi_dag_counting,"
+           "ratio_raw_over_stored,bpi_edd_over_stored,bpi_zdd_std_over_stored\n";
 }
 
 static void writeOptimizeCsvRow(std::ostream& out, const std::string& ts, const std::string& mode,
@@ -458,8 +462,9 @@ static void writeOptimizeCsvRow(std::ostream& out, const std::string& ts, const 
         << rr.seconds << ',' << (rr.semanticsOk ? 1 : 0) << ',' << (rr.ok ? 1 : 0) << ','
         << status << ',' << csvEscape(rr.rejectReason) << ',' << roundtripEdd << ','
         << std::setprecision(6) << roundtripPct;
-    // Cotas de encoding: derivadas de edd_nodes/numZddVars, no requieren FullAudit.
-    out << ',' << std::setprecision(8) << rr.bpiAfter.bpiZddStd << ','
+    // Cotas de encoding: derivadas de edd_nodes/levels, no requieren FullAudit.
+    out << ',' << rr.bpiAfter.levelsUsedForBounds << ','
+        << (rr.bpiAfter.levelsAreExact ? 1 : 0) << ',' << std::setprecision(8)
         << rr.bpiAfter.bpiZddStd << ',' << rr.bpiAfter.bpiLevelGrouped << ','
         << rr.bpiAfter.bpiDagCounting;
     if (rr.denom.deepScanned) {
@@ -653,7 +658,7 @@ static int optimizeWorkerProcess(const std::string& inPack, const std::string& d
             roots.clear();
             int nv2 = 0, off2 = 0;
             if (ZddPack::loadZddPack(dd, roots, nv2, off2, outPack)) {
-                roundtripEdd = NzddCommon::cuddEddNodeCount(dd);
+                roundtripEdd = NzddCommon::cuddForestNodeCount(dd, roots);
                 if (rr.eddAfter > 0) {
                     roundtripPct = 100.0 * static_cast<double>(roundtripEdd) /
                                    static_cast<double>(rr.eddAfter);
@@ -711,7 +716,7 @@ static OptimizeRunOutcome runOptimizeWithTimeout(const std::string& inPack,
                 roots.clear();
                 int nv2 = 0, off2 = 0;
                 if (ZddPack::loadZddPack(dd, roots, nv2, off2, outPack)) {
-                    out.roundtripEdd = NzddCommon::cuddEddNodeCount(dd);
+                    out.roundtripEdd = NzddCommon::cuddForestNodeCount(dd, roots);
                     if (out.rr.eddAfter > 0) {
                         out.roundtripPct = 100.0 * static_cast<double>(out.roundtripEdd) /
                                            static_cast<double>(out.rr.eddAfter);
@@ -782,7 +787,7 @@ static void fillBaselineMetrics(const std::string& docsPath, const std::string& 
     rr.termsMeasured = static_cast<uint32_t>(roots.size());
     rr.denom = ZddReorder::scanDocsForOptimize(docsPath, rr.termsMeasured);
     rr.totalInts = rr.denom.nRaw;
-    rr.eddBefore = NzddCommon::cuddEddNodeCount(dd);
+    rr.eddBefore = NzddCommon::cuddForestNodeCount(dd, roots);
     rr.eddAfter = rr.eddBefore;
     if (rr.totalInts > 0) {
         rr.bpiBefore = NzddBpi::compute(ZddReorder::numeratorsFromEdd(dd, rr.eddBefore), rr.denom);

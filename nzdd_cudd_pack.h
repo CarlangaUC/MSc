@@ -65,6 +65,28 @@ inline std::vector<uint32_t> captureInvPerm(DdManager* dd) {
     return p;
 }
 
+// Niveles que el DAG ocupa de verdad = varIndex distintos entre sus nodos. El
+// .zpack ya guarda varIndex por nodo, asi que sale exacto sin recorrer el DAG ni
+// consultar las subtablas del manager (donde la cadena univ ocupa TODOS los
+// niveles con 1 nodo cada uno y haria que el conteo fuera siempre numZddVars).
+// Invariante bajo reordenamiento: permutar niveles no cambia el conjunto de
+// variables usadas, solo su profundidad.
+inline uint32_t countNonEmptyLevels(const ZddPackData& pd) {
+    if (pd.nodes.empty()) return 0u;
+    uint32_t maxIdx = 0;
+    for (const PackNodeRec& rec : pd.nodes)
+        if (rec.varIndex > maxIdx) maxIdx = rec.varIndex;
+    std::vector<bool> seen(static_cast<size_t>(maxIdx) + 1u, false);
+    uint32_t distinct = 0;
+    for (const PackNodeRec& rec : pd.nodes) {
+        if (!seen[rec.varIndex]) {
+            seen[rec.varIndex] = true;
+            ++distinct;
+        }
+    }
+    return distinct;
+}
+
 inline bool isIdentityInvPerm(const std::vector<uint32_t>& invPerm) {
     for (size_t i = 0; i < invPerm.size(); ++i) {
         if (invPerm[i] != static_cast<uint32_t>(i)) return false;
@@ -507,7 +529,8 @@ inline bool loadZddPack(DdManager*& dd, std::vector<DdNode*>& termZdd, int& numZ
     std::cout << "[ZddPack] cargado: " << path << " format=" << (pd.format == PackFormat::V2 ? "v2" : "v1")
               << " nTerms=" << termZdd.size() << " nNodes=" << pd.nodes.size()
               << " pool_nodes=" << Cudd_zddReadNodeCount(dd)
-              << " edd_nodes=" << NzddCommon::cuddEddNodeCount(dd) << std::endl;
+              << " edd_nodes=" << NzddCommon::cuddForestNodeCount(dd, termZdd)
+              << " levels=" << countNonEmptyLevels(pd) << std::endl;
     return true;
 }
 

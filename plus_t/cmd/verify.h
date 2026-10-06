@@ -147,7 +147,7 @@ static int cmdVerify(int argc, char** argv) {
               << ZDD_MASTER_BITS << " tagWidth=" << tagWidth << " docOffset=" << docOffset
               << " numZddVars=" << numZddVars << "\n";
     std::cout << "pool_build_trimmed=" << poolBefore << " pool_loaded=" << poolAfter
-              << " edd_nodes_loaded=" << (poolAfter - numZddVars)
+              << " edd_nodes_loaded=" << NzddCommon::cuddForestNodeCount(dd, loaded)
               << " load_RSS=" << (uLoad.maxrss / 1024.0) << " MB\n";
     std::cout << "bytes_cudd_build=" << bytesBuild << " bytes_cudd_loaded=" << bytesLoaded;
     if (bytesBuild > 0) {

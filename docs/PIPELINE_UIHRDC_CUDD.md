@@ -17,6 +17,9 @@ El flujo anterior sin tags está archivado en [`scripts_deprecados/`](../scripts
 ```
 wiki_Ngb.txt + page_mapping
         │
+        ▼  [0] limpiar_corpus_wiki.py  (opcional: marcado | torsen)
+        │      wiki_Ngb_limpio_<nivel>.txt + .DOCBOUNDARIES.ul
+        │
         ▼  [1] BUILD_PFORDELTA_NOTEXT … only_list_and_voc
         │
    listas_wiki_Ngb_versionada  +  index_*.voc
@@ -29,6 +32,8 @@ wiki_Ngb.txt + page_mapping
               cudd_evolucion_Ngb_plus_t.csv  +  wiki_Ngb_plus_t.zpack
               ▼ [4] analisis_CUDD.ipynb → bpi_edd (EDD) + bpi_file + bpi_mem/bpi_build (diag.)
 ```
+
+Orquestador de limpieza + BPI (pasos 0→4): [`scripts/pipeline_limpieza_bpi.sh`](../scripts/pipeline_limpieza_bpi.sh)
 
 **Ningún modo `build`/`load`/`verify` genera `.dot`** en datasets reales. Los diagramas existen solo en `zdd_cudd_plus_t demo u+t|log`.
 
@@ -84,6 +89,60 @@ g++ -O2 -std=c++17 -fopenmp -o zdd_cudd_plus_t plus_t/main.cpp \
   -I ./TdZdd/include \
   -I ./uiHRDC/uiHRDC/indexes/NOPOS/II_docs/src/utils
 ```
+
+---
+
+## Paso 0 — Limpiar wikitext (opcional)
+
+Los dumps wiki vienen en **wikitext de MediaWiki** (`{{plantillas}}`, `[[enlaces]]`,
+entidades `&lt;`, `&quot;`, etc.). uiHRDC indexa las corridas de puntuación como
+términos (`[[`, `|`, `'''`, `==`), inflando `n_raw` y el vocabulario. Torsen y el
+wiki2g oficial de uiHRDC usan formatos distintos: torsen es `[a-z0-9 ]` puro; el
+wiki2g del paper también viene sucio (tokens como `htmlSultan`, `2003Lowest`).
+
+Script: [`scripts/limpiar_corpus_wiki.py`](../scripts/limpiar_corpus_wiki.py)
+
+| Nivel | Qué hace |
+|---|---|
+| `marcado` | Quita wikitext/HTML; conserva mayúsculas y puntuación de prosa |
+| `torsen` | `marcado` + minúsculas + solo `[a-z0-9 ]` (formato torsen) |
+
+| Backend | Librería | Notas |
+|---|---|---|
+| `regex` | propio | **Default producción**; más agresivo en wiki versionado |
+| `mwph` | mwparserfromhell | Estándar MediaWiki (`strip_code`) |
+| `wtp` | wikitextparser | Estándar alternativo (`plain_text`) |
+
+Comparación reproducible: [`scripts/comparar_backends_limpieza.py`](../scripts/comparar_backends_limpieza.py).
+
+**Restricción crítica:** preserva líneas 1:1 (1 línea = 1 revisión). `page_mapping.bin`
+se copia sin cambios; solo se regenera `.DOCBOUNDARIES.ul`.
+
+```bash
+# Solo limpieza (default: regex)
+python3 scripts/limpiar_corpus_wiki.py \
+  --input uiHRDC/uiHRDC/data/texts/wiki_2gb.txt \
+  --output resultados_test/wiki_2gb_limpio_marcado.txt \
+  --nivel marcado
+
+# Backend estándar declarable (tesis)
+python3 scripts/limpiar_corpus_wiki.py \
+  --input uiHRDC/uiHRDC/data/texts/wiki_100mb.txt \
+  --output resultados_test/wiki_100mb_limpio_marcado_mwph.txt \
+  --nivel marcado --backend mwph
+
+# Pipeline completo (limpiar → uiHRDC → .docs → ZDD → BPI baseline → optimize → BPI)
+./scripts/pipeline_limpieza_bpi.sh wiki_100mb marcado
+./scripts/pipeline_limpieza_bpi.sh wiki_2gb marcado              # default HEUR=nodes_desc+sift
+OPTIMIZE=0 ./scripts/pipeline_limpieza_bpi.sh wiki_2gb marcado   # solo baseline
+BACKEND=mwph ./scripts/pipeline_limpieza_bpi.sh wiki_2gb marcado
+```
+
+Corpus ≥ 500 MB usa modo **streaming** (memoria O(1) por línea).
+
+Backends estándar (`mwph`, `wtp`) requieren `.venv/bin/pip install mwparserfromhell wikitextparser`.
+En muestras wiki_100mb el regex deja **menos marcado residual** que mwph/wtp (~86 % Jaccard);
+ver `comparar_backends_limpieza.py` para reproducir.
 
 ---
 
@@ -353,6 +412,7 @@ libera la referencia temporal a `F_t` y `pointerList[t]` conserva la raíz ident
 | [`nzdd_cudd_common.h`](../nzdd_cudd_common.h) | I/O compartido: `.voc`, `.docs`, helpers CUDD |
 | [`nzdd_cudd_pack.h`](../nzdd_cudd_pack.h) | Formato `.zpack` (v1 identidad, v2 + invPerm) |
 | [`version_packing.h`](../uiHRDC/uiHRDC/indexes/NOPOS/II_docs/src/utils/version_packing.h) | Macros `ZDD_UNPACK_MASTER/REL` (40/24) |
+| [`scripts/packed64_layout.py`](../scripts/packed64_layout.py) | Python: mismo layout (lee el header; override `ZDD_*_BITS`) |
 
 ### Pipeline interno (build)
 
