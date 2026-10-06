@@ -1,7 +1,0 @@
-dataset,components,semantics,terms,n_raw,updates,bits_per_component,file_bytes,bpi_file_over_n_raw,build_seconds,wall_seconds,max_rss_kb,validation_terms,validation,roundtrip
-wiki_100mb,1,T=relative_payload=master,9774,5424820,139024,11,1912662,2.82061,0.226711,0.69,13044,500,PASS,PASS
-wiki_100mb,2,T=relative_payload=master_relative,9774,5424820,10849640,11,92683670,136.681,12.2145,13.12,190436,500,PASS,PASS
-wiki_1gb,1,T=relative_payload=master,147992,61447986,3013398,12,34669812,4.51371,4.29603,7.63,160560,500,PASS,PASS
-wiki_1gb,2,T=relative_payload=master_relative,147992,61447986,122895972,12,1055037476,137.357,170.558,177.89,2147296,500,PASS,PASS
-wiki_2gb,1,T=relative_payload=master,250550,122197799,6041162,13,64352758,4.21302,8.82714,14.45,280504,500,PASS,PASS
-wiki_2gb,2,T=relative_payload=master_relative,250550,122197799,244395598,13,2200991102,144.094,388.88,401.31,2227952,500,PASS,PASS

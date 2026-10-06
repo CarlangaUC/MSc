@@ -4,7 +4,7 @@ Documento **para estudio personal**: orden de llamadas, procedencia respecto al 
 
 **Código:** [`edd_metatrie/meta_trie_edd.cpp`](../edd_metatrie/meta_trie_edd.cpp)  
 **Referencia upstream (clone local):** `BGPs/bgps-temporal-graphs/` → [darroyue/bgps-temporal-graphs](https://github.com/darroyue/bgps-temporal-graphs)  
-**Paper:** `2607.20356v1.pdf` (Worst-Case Optimal BGPs on Temporal Graphs)
+**Paper:** [`docs/papers/2607.20356v1.pdf`](papers/2607.20356v1.pdf) (Worst-Case Optimal BGPs on Temporal Graphs)
 
 **Importante:** MAGISTER **no enlaza** el repo BGPs al compilar. La lógica CLTJ está **copiada/adaptada** en `meta_trie_edd.cpp` + `cltj_temporal_wm_u64.hpp`. BGPs es la **referencia** para comparar nombres y algoritmos.
 

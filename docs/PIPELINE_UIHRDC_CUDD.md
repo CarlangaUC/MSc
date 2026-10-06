@@ -409,8 +409,8 @@ libera la referencia temporal a `F_t` y `pointerList[t]` conserva la raíz ident
 | [`plus_t/cmd/verify.h`](../plus_t/cmd/verify.h) | Orquestación modo `verify` |
 | [`plus_t/cmd/optimize.h`](../plus_t/cmd/optimize.h) | Modo `optimize`: heurísticas CUDD + ZPACKv2 |
 | [`plus_t/demo/viz.h`](../plus_t/demo/viz.h) | Modo `demo` + export Graphviz |
-| [`nzdd_cudd_common.h`](../nzdd_cudd_common.h) | I/O compartido: `.voc`, `.docs`, helpers CUDD |
-| [`nzdd_cudd_pack.h`](../nzdd_cudd_pack.h) | Formato `.zpack` (v1 identidad, v2 + invPerm) |
+| [`nzdd_cudd_common.h`](../plus_t/nzdd_cudd_common.h) | I/O compartido: `.voc`, `.docs`, helpers CUDD |
+| [`nzdd_cudd_pack.h`](../plus_t/nzdd_cudd_pack.h) | Formato `.zpack` (v1 identidad, v2 + invPerm) |
 | [`version_packing.h`](../uiHRDC/uiHRDC/indexes/NOPOS/II_docs/src/utils/version_packing.h) | Macros `ZDD_UNPACK_MASTER/REL` (40/24) |
 | [`scripts/packed64_layout.py`](../scripts/packed64_layout.py) | Python: mismo layout (lee el header; override `ZDD_*_BITS`) |
 
@@ -916,8 +916,8 @@ Sustituir `wiki_1gb` por el id del dataset en todos los paths. Referencia de rut
 - Texto LaTeX Backbone 2: [`BACKBONE_2_LATEX.md`](BACKBONE_2_LATEX.md)
 - Motor con tags: [`plus_t/engine/engine.h`](../plus_t/engine/engine.h)
 - Visualización demo: [`plus_t/demo/viz.h`](../plus_t/demo/viz.h)
-- Formato `.zpack`: [`nzdd_cudd_pack.h`](../nzdd_cudd_pack.h)
-- I/O compartido: [`nzdd_cudd_common.h`](../nzdd_cudd_common.h)
+- Formato `.zpack`: [`nzdd_cudd_pack.h`](../plus_t/nzdd_cudd_pack.h)
+- I/O compartido: [`nzdd_cudd_common.h`](../plus_t/nzdd_cudd_common.h)
 - Layout packed64: [`version_packing.h`](../uiHRDC/uiHRDC/indexes/NOPOS/II_docs/src/utils/version_packing.h)
 - Build/search uiHRDC general: [`PLAN_A_SEGUIR_MOTOR`](../PLAN_A_SEGUIR_MOTOR) (anexo compilación)
 - Stress campaign: [`scripts/stress/README.md`](../scripts/stress/README.md)

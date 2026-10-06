@@ -7,6 +7,23 @@ uiHRDC (only_list_and_voc) → .docs packed64 → zdd_cudd_plus_t → .zpack / l
                                                               ↘ optimize (post-build)
 ```
 
+## Estructura del repo
+
+| Ruta | Rol |
+|------|-----|
+| `plus_t/` | Motor ZDD Backbone 2 + headers `.zpack` |
+| `edd_metatrie/` | EDD metatrie (intervalos / time-first trie) |
+| `uiHRDC/` | Submódulo índice invertido / packed64 |
+| `cudd/`, `TdZdd/` | Dependencias CUDD / TdZdd |
+| `scripts/` | Pipelines, sweeps, notebooks, medidores |
+| `scripts_deprecados/` | Código histórico (Backbone 1, TdZdd, …) |
+| `docs/` | Guías + LaTeX; `docs/papers/` paper CLTJ |
+| `datos_sinteticos/` | Recetas y salidas sintéticas |
+| `resultados_test/` | Logs/CSV locales (**no versionar**) |
+| `data/` | Artefactos grandes locales (**no versionar**) |
+| `archive/` | Basura histórica sacada de la raíz |
+| `BGPs/` | Referencia / clones (no embeber en git) |
+
 ## Documentación (dónde leer qué)
 
 | Documento | Contenido |
@@ -40,7 +57,9 @@ Un `.zpack` **no almacena** la codificación del tag: `load`/`verify`/`optimize`
 | **`build`** | Construcción término a término | Inserta `ZDD^t` en un **único `DdManager`** compartido. **No reordena.** |
 | **`optimize`** | **Post-build**, sobre `.zpack` cargado | Permuta **niveles CUDD** en todo el manager (`ReduceHeap` / `ShuffleHeap`). Mide **EDD global** (`cuddForestNodeCount`). |
 
-El arreglo `pointerList[t]` apunta a la raíz de cada término; el reordenamiento no “ordena el arreglo”, sino el **DAG compartido** debajo. CUDD tiene autoreorden desactivado en build (`Cudd_AutodynDisableZdd` en `nzdd_cudd_common.h`).
+CUDD tiene autoreorden desactivado en build (`Cudd_AutodynDisableZdd` en `plus_t/nzdd_cudd_common.h`).
+
+El arreglo `pointerList[t]` apunta a la raíz de cada término; el reordenamiento no “ordena el arreglo”, sino el **DAG compartido** debajo.
 
 Reordenamiento incremental durante el build es posible en principio (p. ej. shuffle estático cada K términos), pero **no está implementado**; en 2 GB un `sift_conv` post-build puede superar 20 min.
 
@@ -272,8 +291,8 @@ resultados_test/optimize_sweep_wiki_2gb_plus_t_bin_COMPLETE.csv
 | [`plus_t/cmd/heuristics_check.h`](plus_t/cmd/heuristics_check.h) | Modo `heuristics-check`: toy + verificación semántica + DOT/PNG |
 | [`plus_t/cmd/optimize.h`](plus_t/cmd/optimize.h) | Reordenamiento + sweep + timeout + CSV |
 | [`plus_t/export/export.h`](plus_t/export/export.h) | Save, spot-check, consultas verify |
-| [`nzdd_cudd_common.h`](nzdd_cudd_common.h) | I/O `.voc`/`.docs`, `cuddForestNodeCount`, config CUDD |
-| [`nzdd_cudd_pack.h`](nzdd_cudd_pack.h) | Formato `.zpack` v1/v2 (`invPerm` tras reorder) |
+| [`plus_t/nzdd_cudd_common.h`](plus_t/nzdd_cudd_common.h) | I/O `.voc`/`.docs`, `cuddForestNodeCount`, config CUDD |
+| [`plus_t/nzdd_cudd_pack.h`](plus_t/nzdd_cudd_pack.h) | Formato `.zpack` v1/v2 (`invPerm` tras reorder) |
 | [`plus_t/utils/bpi.h`](plus_t/utils/bpi.h) | **BPI centralizado**: `compute`, `printReport` |
 | [`plus_t/utils/bpi_scan.h`](plus_t/utils/bpi_scan.h) | Escaneo de denominadores sobre `.docs` |
 | [`scripts/measure_zpack_bpi.cpp`](scripts/measure_zpack_bpi.cpp) | Medidor bpi_edd / bpi_file / bpi_mem post-load |

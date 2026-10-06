@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DATASET="${1:-wiki_2gb}"
 NIVEL="${2:-marcado}"
-OUT="$ROOT/SWEEP_STATUS.md"
+OUT="$ROOT/docs/notes/SWEEP_STATUS.md"
 LOGDIR="$ROOT/resultados_test/sweep_backends_${DATASET}_${NIVEL}"
 CSV="$LOGDIR/../sweep_backends_${DATASET}_${NIVEL}.csv"
 CSV="$ROOT/resultados_test/sweep_backends_${DATASET}_${NIVEL}.csv"

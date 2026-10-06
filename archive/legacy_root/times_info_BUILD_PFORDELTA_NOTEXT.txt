@@ -1,0 +1,782 @@
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/uiHRDC/uiHRDC/data/texts/torsen.text200mb.txt /root/MAGISTER/uiHRDC/uiHRDC/data/texts/index_torsen_200mb pfdThreshold=128;int2=merge;intn=merge
+	Building time: 3.682 secs
+	Input: 209716881 bytes --> Output 9820730 bytes.
+	Overall compression --> 4.68% (0.37 bits per char).
+
+	 Extended info 
+ 
+	Space statistics for II-words-DocOriented
+	 tindex structure = 104 bytes.
+	 number of diff words= 13802
+	 number of docs (ndocs)= 6840
+	 vocabulary of words = 125362 bytes.
+	 Inverted list-structure = 9695264 bytes.
+	 Text (compressed representation) = 0 bytes.
+	 Versioned postings enabled = 0
+	 Version map entries = 0
+	 Whole index = 9820730 bytes  ** Ratio = 4.683 % **
+ 
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/uiHRDC/uiHRDC/data/texts/wiki_100mb.txt /root/MAGISTER/uiHRDC/uiHRDC/data/texts/index_wiki_100mb_named nooptions
+	Building time: 3.723 secs
+	Input: 117001334 bytes --> Output 1290045 bytes.
+	Overall compression --> 1.10% (0.09 bits per char).
+
+	 Extended info 
+ 
+	Space statistics for II-words-DocOriented
+	 tindex structure = 104 bytes.
+	 number of diff words= 9774
+	 number of docs (ndocs)= 2009
+	 vocabulary of words = 82490 bytes.
+	 Inverted list-structure = 1207451 bytes.
+	 Text (compressed representation) = 0 bytes.
+	 Versioned postings enabled = 1
+	 Version map entries = 15
+	 Whole index = 1290045 bytes  ** Ratio = 1.103 % **
+ 
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/uiHRDC/uiHRDC/data/texts/torsen.text200mb.txt /root/MAGISTER/uiHRDC/uiHRDC/data/texts/index_torsen_200mb_named2 nooptions
+	Building time: 4.988 secs
+	Input: 209716881 bytes --> Output 2125318 bytes.
+	Overall compression --> 1.01% (0.08 bits per char).
+
+	 Extended info 
+ 
+	Space statistics for II-words-DocOriented
+	 tindex structure = 104 bytes.
+	 number of diff words= 13802
+	 number of docs (ndocs)= 6840
+	 vocabulary of words = 125362 bytes.
+	 Inverted list-structure = 1999852 bytes.
+	 Text (compressed representation) = 0 bytes.
+	 Versioned postings enabled = 0
+	 Version map entries = 0
+	 Whole index = 2125318 bytes  ** Ratio = 1.013 % **
+ 
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/uiHRDC/uiHRDC/data/texts/wiki_100mb.txt /root/MAGISTER/uiHRDC/uiHRDC/data/texts/index_wiki_100mb_named nooptions
+	Building time: 3.674 secs
+	Input: 117001334 bytes --> Output 1290045 bytes.
+	Overall compression --> 1.10% (0.09 bits per char).
+
+	 Extended info 
+ 
+	Space statistics for II-words-DocOriented
+	 tindex structure = 104 bytes.
+	 number of diff words= 9774
+	 number of docs (ndocs)= 2009
+	 vocabulary of words = 82490 bytes.
+	 Inverted list-structure = 1207451 bytes.
+	 Text (compressed representation) = 0 bytes.
+	 Versioned postings enabled = 1
+	 Version map entries = 15
+	 Whole index = 1290045 bytes  ** Ratio = 1.103 % **
+ 
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/uiHRDC/uiHRDC/data/texts/torsen.text200mb.txt /root/MAGISTER/uiHRDC/uiHRDC/data/texts/index_torsen_200mb_named2 nooptions
+	Building time: 5.071 secs
+	Input: 209716881 bytes --> Output 2125318 bytes.
+	Overall compression --> 1.01% (0.08 bits per char).
+
+	 Extended info 
+ 
+	Space statistics for II-words-DocOriented
+	 tindex structure = 104 bytes.
+	 number of diff words= 13802
+	 number of docs (ndocs)= 6840
+	 vocabulary of words = 125362 bytes.
+	 Inverted list-structure = 1999852 bytes.
+	 Text (compressed representation) = 0 bytes.
+	 Versioned postings enabled = 0
+	 Version map entries = 0
+	 Whole index = 2125318 bytes  ** Ratio = 1.013 % **
+ 
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_100mb_limpio_marcado.txt /root/MAGISTER/resultados_test/index_wiki_100mb_limpio_marcado_named only_list_and_voc
+	Building time: 1.320 secs
+	Input: 61700884 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_100mb_limpio_torsen.txt /root/MAGISTER/resultados_test/index_wiki_100mb_limpio_torsen_named only_list_and_voc
+	Building time: 1.172 secs
+	Input: 59207223 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_named only_list_and_voc
+	Building time: 30.311 secs
+	Input: 1347566714 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_torsen.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_torsen_named only_list_and_voc
+	Building time: 25.864 secs
+	Input: 1297958562 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_mwph.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_mwph_named only_list_and_voc
+	Building time: 36.916 secs
+	Input: 1587405042 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_100mb_limpio_marcado.txt /root/MAGISTER/resultados_test/index_wiki_100mb_limpio_marcado_named only_list_and_voc
+	Building time: 1.112 secs
+	Input: 61700884 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_100mb_limpio_marcado_mwph.txt /root/MAGISTER/resultados_test/index_wiki_100mb_limpio_marcado_mwph_named only_list_and_voc
+	Building time: 1.607 secs
+	Input: 74522314 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_100mb_limpio_marcado_mwph_u2.txt /root/MAGISTER/resultados_test/index_wiki_100mb_limpio_marcado_mwph_u2_named only_list_and_voc
+	Building time: 1.350 secs
+	Input: 72141010 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_100mb_limpio_marcado_wtp.txt /root/MAGISTER/resultados_test/index_wiki_100mb_limpio_marcado_wtp_named only_list_and_voc
+	Building time: 1.303 secs
+	Input: 72826981 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_100mb_limpio_marcado_wtp_u2.txt /root/MAGISTER/resultados_test/index_wiki_100mb_limpio_marcado_wtp_u2_named only_list_and_voc
+	Building time: 1.498 secs
+	Input: 70939876 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_100mb_limpio_marcado_wikiextractor.txt /root/MAGISTER/resultados_test/index_wiki_100mb_limpio_marcado_wikiextractor_named only_list_and_voc
+	Building time: 0.853 secs
+	Input: 53100369 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_100mb_limpio_marcado_pywikibot.txt /root/MAGISTER/resultados_test/index_wiki_100mb_limpio_marcado_pywikibot_named only_list_and_voc
+	Building time: 1.612 secs
+	Input: 85989424 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_100mb_limpio_marcado_html_stdlib.txt /root/MAGISTER/resultados_test/index_wiki_100mb_limpio_marcado_html_stdlib_named only_list_and_voc
+	Building time: 1.695 secs
+	Input: 90016545 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_100mb_limpio_marcado_html_lxml.txt /root/MAGISTER/resultados_test/index_wiki_100mb_limpio_marcado_html_lxml_named only_list_and_voc
+	Building time: 1.639 secs
+	Input: 90604752 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_100mb_limpio_marcado_html_bs4.txt /root/MAGISTER/resultados_test/index_wiki_100mb_limpio_marcado_html_bs4_named only_list_and_voc
+	Building time: 1.697 secs
+	Input: 90681726 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_100mb_limpio_marcado_html5lib.txt /root/MAGISTER/resultados_test/index_wiki_100mb_limpio_marcado_html5lib_named only_list_and_voc
+	Building time: 0.378 secs
+	Input: 25254941 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_100mb_limpio_marcado_html_selectolax.txt /root/MAGISTER/resultados_test/index_wiki_100mb_limpio_marcado_html_selectolax_named only_list_and_voc
+	Building time: 0.439 secs
+	Input: 25254941 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_100mb_limpio_marcado_html_inscriptis.txt /root/MAGISTER/resultados_test/index_wiki_100mb_limpio_marcado_html_inscriptis_named only_list_and_voc
+	Building time: 2.254 secs
+	Input: 111223325 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_100mb_limpio_marcado_mwph_u2_html.txt /root/MAGISTER/resultados_test/index_wiki_100mb_limpio_marcado_mwph_u2_html_named only_list_and_voc
+	Building time: 1.348 secs
+	Input: 71805655 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_100mb_limpio_marcado_wtp_u2_html.txt /root/MAGISTER/resultados_test/index_wiki_100mb_limpio_marcado_wtp_u2_html_named only_list_and_voc
+	Building time: 1.221 secs
+	Input: 70662771 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_100mb_limpio_marcado_wikiextractor_html.txt /root/MAGISTER/resultados_test/index_wiki_100mb_limpio_marcado_wikiextractor_html_named only_list_and_voc
+	Building time: 0.926 secs
+	Input: 53095067 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_100mb_limpio_marcado_mwph_u2_regex.txt /root/MAGISTER/resultados_test/index_wiki_100mb_limpio_marcado_mwph_u2_regex_named only_list_and_voc
+	Building time: 1.104 secs
+	Input: 63935663 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_100mb_limpio_marcado_wtp_u2_regex.txt /root/MAGISTER/resultados_test/index_wiki_100mb_limpio_marcado_wtp_u2_regex_named only_list_and_voc
+	Building time: 1.185 secs
+	Input: 63051154 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_100mb_limpio_marcado_wikiextractor_regex.txt /root/MAGISTER/resultados_test/index_wiki_100mb_limpio_marcado_wikiextractor_regex_named only_list_and_voc
+	Building time: 1.010 secs
+	Input: 52842527 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_100mb_limpio_marcado_html_regex.txt /root/MAGISTER/resultados_test/index_wiki_100mb_limpio_marcado_html_regex_named only_list_and_voc
+	Building time: 1.087 secs
+	Input: 62306086 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_mwph_u2.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_mwph_u2_named only_list_and_voc
+	Building time: 37.023 secs
+	Input: 1561786642 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_wtp.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_wtp_named only_list_and_voc
+	Building time: 24.311 secs
+	Input: 1565807047 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_mwph.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_mwph_named only_list_and_voc
+	Building time: 23.019 secs
+	Input: 1587405042 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_wtp.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_wtp_named only_list_and_voc
+	Building time: 22.537 secs
+	Input: 1565807047 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_wtp_u2.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_wtp_u2_named only_list_and_voc
+	Building time: 21.227 secs
+	Input: 1525961955 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_wikiextractor.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_wikiextractor_named only_list_and_voc
+	Building time: 16.933 secs
+	Input: 1329927975 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_pywikibot.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_pywikibot_named only_list_and_voc
+	Building time: 24.105 secs
+	Input: 1721946095 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_html_stdlib.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_html_stdlib_named only_list_and_voc
+	Building time: 24.675 secs
+	Input: 1719331555 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_html_lxml.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_html_lxml_named only_list_and_voc
+	Building time: 24.530 secs
+	Input: 1729170841 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_html_bs4.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_html_bs4_named only_list_and_voc
+	Building time: 24.199 secs
+	Input: 1730225288 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_html5lib.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_html5lib_named only_list_and_voc
+	Building time: 20.913 secs
+	Input: 1493725039 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_html_selectolax.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_html_selectolax_named only_list_and_voc
+	Building time: 21.189 secs
+	Input: 1493725054 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_html_inscriptis.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_html_inscriptis_named only_list_and_voc
+	Building time: 28.956 secs
+	Input: 1970290936 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_mwph_u2_html.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_mwph_u2_html_named only_list_and_voc
+	Building time: 21.597 secs
+	Input: 1546561124 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_wtp_u2_html.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_wtp_u2_html_named only_list_and_voc
+	Building time: 20.846 secs
+	Input: 1514093541 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_wikiextractor_html.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_wikiextractor_html_named only_list_and_voc
+	Building time: 17.753 secs
+	Input: 1328791741 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_mwph_u2_regex.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_mwph_u2_regex_named only_list_and_voc
+	Building time: 19.353 secs
+	Input: 1437819740 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_wtp_u2_regex.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_wtp_u2_regex_named only_list_and_voc
+	Building time: 19.486 secs
+	Input: 1422232210 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_wikiextractor_regex.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_wikiextractor_regex_named only_list_and_voc
+	Building time: 17.415 secs
+	Input: 1322669874 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_html_regex.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_html_regex_named only_list_and_voc
+	Building time: 17.894 secs
+	Input: 1329457265 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_html5lib.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_html5lib_named only_list_and_voc
+	Building time: 21.511 secs
+	Input: 1493725039 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_html_bs4.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_html_bs4_named only_list_and_voc
+	Building time: 27.510 secs
+	Input: 1730225288 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_html_inscriptis.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_html_inscriptis_named only_list_and_voc
+	Building time: 30.369 secs
+	Input: 1970290936 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_html_lxml.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_html_lxml_named only_list_and_voc
+	Building time: 25.670 secs
+	Input: 1729170841 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_html_regex.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_html_regex_named only_list_and_voc
+	Building time: 18.420 secs
+	Input: 1329457265 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_html_selectolax.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_html_selectolax_named only_list_and_voc
+	Building time: 21.824 secs
+	Input: 1493725054 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_html_stdlib.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_html_stdlib_named only_list_and_voc
+	Building time: 25.481 secs
+	Input: 1719331555 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_mwph_u2_html.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_mwph_u2_html_named only_list_and_voc
+	Building time: 22.759 secs
+	Input: 1546561124 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_mwph_u2_regex.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_mwph_u2_regex_named only_list_and_voc
+	Building time: 19.792 secs
+	Input: 1437819740 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_pywikibot.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_pywikibot_named only_list_and_voc
+	Building time: 26.625 secs
+	Input: 1721946095 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_wikiextractor.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_wikiextractor_named only_list_and_voc
+	Building time: 17.895 secs
+	Input: 1329927975 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_wikiextractor_html.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_wikiextractor_html_named only_list_and_voc
+	Building time: 18.936 secs
+	Input: 1328791741 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_wikiextractor_regex.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_wikiextractor_regex_named only_list_and_voc
+	Building time: 20.387 secs
+	Input: 1322669874 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_wtp.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_wtp_named only_list_and_voc
+	Building time: 30.837 secs
+	Input: 1565807047 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_wtp_u2.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_wtp_u2_named only_list_and_voc
+	Building time: 27.321 secs
+	Input: 1525961955 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_wtp_u2_html.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_wtp_u2_html_named only_list_and_voc
+	Building time: 27.902 secs
+	Input: 1514093541 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================
+
+ Building index qgrams: /root/MAGISTER/uiHRDC/uiHRDC/indexes/NOPOS/II_docs/BUILD_PFORDELTA_NOTEXT /root/MAGISTER/resultados_test/wiki_2gb_limpio_marcado_wtp_u2_regex.txt /root/MAGISTER/resultados_test/index_wiki_2gb_limpio_marcado_wtp_u2_regex_named only_list_and_voc
+	Building time: 20.704 secs
+	Input: 1422232210 bytes --> Output 0 bytes.
+	Overall compression --> 0.00% (0.00 bits per char).
+
+	 Extended info 
+ 
+	 only_list_and_voc: vocab + listas (no il/ct)
+
+=====================================

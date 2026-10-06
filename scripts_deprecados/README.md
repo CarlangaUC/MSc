@@ -7,7 +7,7 @@ Contenido archivado del flujo **anterior** a `plus_t/`. No forma parte del pipel
 | Recurso | Ubicación |
 |---------|-----------|
 | Motor CUDD con tags | [`plus_t/`](../plus_t/) → binario `zdd_cudd_plus_t` |
-| Headers compartidos | [`nzdd_cudd_common.h`](../nzdd_cudd_common.h), [`nzdd_cudd_pack.h`](../nzdd_cudd_pack.h) |
+| Headers compartidos | [`nzdd_cudd_common.h`](../plus_t/nzdd_cudd_common.h), [`nzdd_cudd_pack.h`](../plus_t/nzdd_cudd_pack.h) |
 | Pipeline operativo | [`docs/PIPELINE_UIHRDC_CUDD.md`](../docs/PIPELINE_UIHRDC_CUDD.md) |
 | Análisis BPI | [`scripts/analisis_CUDD.ipynb`](../scripts/analisis_CUDD.ipynb) |
 
