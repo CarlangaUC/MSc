@@ -8,6 +8,10 @@ test
 *.exe
 edd_metatrie/meta_trie_edd
 
+# Clones BGPs/SDSL (repos propios; no embeber con git add .)
+BGPs/bgps-temporal-graphs/
+BGPs/sdsl-lite/
+
 # --- Archivos de Datos Grandes (por seguridad) ---
 *.docs
 *.ciff
@@ -21,8 +25,14 @@ resultados_test/
 *.dot
 
 # --- Python (si usas scripts auxiliares) ---
+.venv/
 __pycache__/
 *.pyc
+
+# Basura local de indexador / cachés
+apicache/
+postinglists.posts.*
+throttle.ctrl
 
 # --- IDEs y Sistema ---
 .vscode/
