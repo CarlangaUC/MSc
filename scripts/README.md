@@ -2,6 +2,14 @@
 
 Índice del repo: **[readme.md](../readme.md)** · Pipeline CUDD: **[docs/PIPELINE_UIHRDC_CUDD.md](../docs/PIPELINE_UIHRDC_CUDD.md)** · Stress: **[stress/README.md](stress/README.md)**
 
+## Benchmark consulta metatrie vs baseline / ZDD
+
+```bash
+./scripts/bench_query_tau.sh <input.docs> [global|per-term] [n_queries] [reps] [max_terms]
+```
+
+Mide \(Q_\tau=(t,\tau)\mapsto S^\tau\) (metatrie `values_at` vs scan de postings) y, aparte, membresía ZDD \(S\in F_t\). Detalle: [`edd_metatrie/README.md`](../edd_metatrie/README.md).
+
 ## Notebooks
 
 | Notebook | Entrada | Qué analiza |

@@ -1,4 +1,6 @@
-// EDD time-first metatrie for versioned packed64 .docs (adapted from BGPs CLTJ, no 18-trie graph).
+// EDD metatrie time-first sobre .docs versionados (packed64).
+// Adaptado de BGPs/CLTJ: un solo trie (o uno por término), sin el grafo de 18 tries.
+// Hecho versionado = spot_quad (term, master_doc, unused, version_start, version_end).
 
 #include <algorithm>
 #include <array>
@@ -27,6 +29,9 @@
 #include "packed64_io.hpp"
 #include "cltj_temporal_wm_u64.hpp"
 
+// Misma fórmula BPI que el pipeline ZDD (plus_t).
+#include "utils/bpi.h"
+
 namespace edd {
 
 // Count serialized bytes without materializing the buffer (many per-term WMs).
@@ -34,10 +39,12 @@ class counting_streambuf : public std::streambuf {
     std::streamsize n_ = 0;
 
 protected:
+    // Suma bytes escritos sin guardar el buffer.
     std::streamsize xsputn(const char*, std::streamsize n) override {
         n_ += n;
         return n;
     }
+    // Cuenta un byte suelto que no entró por xsputn.
     int overflow(int c) override {
         if (c != traits_type::eof()) ++n_;
         return traits_type::not_eof(c);
@@ -53,6 +60,7 @@ struct counting_ostream : std::ostream {
     uint64_t bytes() const { return buf.bytes(); }
 };
 
+// Bytes que ocuparía el WM al serializarlo.
 inline uint64_t wm_serialized_bytes(const temporal_wm<>& wm) {
     counting_ostream oss;
     return static_cast<uint64_t>(wm.serialize(oss));
@@ -63,14 +71,15 @@ struct wm_size_breakdown {
     uint64_t total() const { return bytes_total; }
 };
 
-struct triple_tm {
-    uint32_t term;
-    uint64_t master;
-    bool operator<(const triple_tm& o) const {
+// Par (término, documento) activo en un snapshot S^τ.
+struct term_master {
+    uint32_t term;    // t — id de posting list / término
+    uint64_t master;  // u — documento (master id del packed64)
+    bool operator<(const term_master& o) const {
         if (term != o.term) return term < o.term;
         return master < o.master;
     }
-    bool operator==(const triple_tm& o) const { return term == o.term && master == o.master; }
+    bool operator==(const term_master& o) const { return term == o.term && master == o.master; }
 };
 
 // --- time-first trie (TIME_FIRST_FULL_INTERVALS only, from compact_trie_v3) ---
@@ -92,19 +101,23 @@ public:
     };
 
 private:
-    sdsl::int_vector<> m_tempint_left;
-    sdsl::int_vector<> m_tempint_right;
-    sdsl::bit_vector m_last_update_per_int;
+    sdsl::int_vector<> m_tempint_left;   // τ_a de cada intervalo suelo
+    sdsl::int_vector<> m_tempint_right;  // τ_b exclusive de cada intervalo suelo
+    sdsl::bit_vector m_last_update_per_int;  // 1 en la última update de cada suelo
     sdsl::select_support_mcl<1> m_last_update_select1;
-    sdsl::int_vector<> m_last_update_pos;
-    temporal_wm<> m_temporal_ds;
-    size_type m_root_degree = 0;
-    uint32_t m_payload_components = 1;
+    sdsl::int_vector<> m_last_update_pos;  // prefijo p_l: índice de la última update del suelo
+    temporal_wm<> m_temporal_ds;  // wavelet matrix de inserts/deletes
+    size_type m_root_degree = 0;  // cantidad de intervalos suelo
+    // Cuántos campos no-temporales indexa el wavelet matrix:
+    //   1 = solo master_doc (modo per-term); 2 = term_id → master_doc (modo global).
+    uint32_t m_n_components = 1;
 
+    // Reengancha select1 al bitvector de last-update.
     void rebind_supports() {
         sdsl::util::init_support(m_last_update_select1, &m_last_update_per_int);
     }
 
+    // Copia suelos, last-update y el WM.
     void copy_from(const time_first_trie& o) {
         m_tempint_left = o.m_tempint_left;
         m_tempint_right = o.m_tempint_right;
@@ -112,10 +125,11 @@ private:
         m_last_update_pos = o.m_last_update_pos;
         m_temporal_ds = o.m_temporal_ds;
         m_root_degree = o.m_root_degree;
-        m_payload_components = o.m_payload_components;
+        m_n_components = o.m_n_components;
         rebind_supports();
     }
 
+    // Mueve el trie y deja el origen vacío.
     void move_from(time_first_trie&& o) noexcept {
         m_tempint_left = std::move(o.m_tempint_left);
         m_tempint_right = std::move(o.m_tempint_right);
@@ -123,7 +137,7 @@ private:
         m_last_update_pos = std::move(o.m_last_update_pos);
         m_temporal_ds = std::move(o.m_temporal_ds);
         m_root_degree = o.m_root_degree;
-        m_payload_components = o.m_payload_components;
+        m_n_components = o.m_n_components;
         o.m_root_degree = 0;
         rebind_supports();
     }
@@ -143,17 +157,20 @@ public:
     }
     ~time_first_trie() = default;
 
+    // Empaqueta suelos, WM y p_l por suelo.
     time_first_trie(std::vector<temporal_interval>& interval_seq, temporal_wm<>& temp_ds, sdsl::bit_vector& last_update_bv,
-                    const std::vector<size_type>& last_update_pos, uint32_t payload_components)
-        : m_payload_components(payload_components) {
+                    const std::vector<size_type>& last_update_pos, uint32_t n_components)
+        : m_n_components(n_components) {
         m_temporal_ds = temp_ds;
         m_last_update_per_int = last_update_bv;
         sdsl::util::init_support(m_last_update_select1, &m_last_update_per_int);
         m_last_update_pos = sdsl::int_vector<>(last_update_pos.size());
         for (size_type i = 0; i < last_update_pos.size(); ++i) m_last_update_pos[i] = last_update_pos[i];
         sdsl::util::bit_compress(m_last_update_pos);
+
         m_tempint_left = sdsl::int_vector<>(interval_seq.size());
         m_tempint_right = sdsl::int_vector<>(interval_seq.size());
+
         for (size_type i = 0; i < interval_seq.size(); ++i) {
             m_tempint_left[i] = interval_seq[i].first;
             m_tempint_right[i] = interval_seq[i].second;
@@ -163,22 +180,27 @@ public:
         m_root_degree = interval_seq.size();
     }
 
-    size_type root_degree() const { return m_root_degree > 0 ? m_root_degree - 1 : 0; }
+    // Cantidad de intervalos suelo.
     size_type interval_count() const { return m_root_degree; }
-    uint32_t payload_components() const { return m_payload_components; }
+    // 1 = solo master_doc (per-term); 2 = (term_id, master_doc) (global).
+    uint32_t n_components() const { return m_n_components; }
 
+    // Rango raíz del WM de updates.
     std::pair<size_type, size_type> get_temporal_root() const { return m_temporal_ds.get_root(); }
 
+    // Prefijo last_update (p_l): hasta dónde apply updates del WM en el suelo `pos`.
     size_type get_last_update_of_interval(size_type pos) const {
         if (pos >= m_last_update_pos.size()) return 0;
         return m_last_update_pos[pos];
     }
 
+    // Intervalo suelo half-open [version_start, version_end) en la posición `pos`.
     std::pair<value_type, value_type> get_interval_at_pos(size_type pos) const {
         return std::make_pair(static_cast<value_type>(m_tempint_left[pos]),
                               static_cast<value_type>(m_tempint_right[pos]));
     }
 
+    // Leap del WM: siguiente valor ≥ val en el componente `depth` (0=term o master, 1=master).
     size_type temporal_successor(size_type depth, std::pair<size_type, size_type>& node_interval, int64_t pos,
                                  value_type val,
                                  std::pair<std::pair<size_type, size_type>, size_type>& node_pair) {
@@ -186,55 +208,62 @@ public:
                                   val, m_temporal_ds.get_n_bits(), node_pair);
     }
 
-    uint32_t wm_n_bits() const { return static_cast<uint32_t>(m_temporal_ds.get_n_bits()); }
+    // Dada una versión τ, obtiene (last_update_prefix p_l, raíz del WM).
+    // False si no hay intervalo suelo que cubra τ o el estado está vacío.
+    bool resolve_at_tau(uint32_t tau, size_type& last_update_prefix,
+                        std::pair<size_type, size_type>& root) const {
+        if (m_root_degree == 0) return false;
+        const size_type pos = interval_seek(tau);
+        if (!version_in_interval(pos, tau)) return false;
+        last_update_prefix = get_last_update_of_interval(pos);
+        if (last_update_prefix == std::numeric_limits<size_type>::max()) return false;
+        root = get_temporal_root();
+        return last_update_prefix <= root.second;
+    }
 
-    // Active payload at integer version (half-open ground interval membership).
-    std::vector<triple_tm> values_at_version(uint32_t version) {
-        std::vector<triple_tm> result;
-        if (m_root_degree == 0) return result;
-        const size_type pos = interval_seek(version);
-        if (!version_in_interval(static_cast<value_type>(pos), version)) return result;
-        const size_type l_update = get_last_update_of_interval(pos);
-        if (l_update == std::numeric_limits<size_type>::max()) return result;
-        std::pair<size_type, size_type> cur_node = get_temporal_root();
-        if (l_update > cur_node.second) return result;
+    // Enumera documentos (master_doc) ≥ 0 bajo un nodo del WM en el componente `depth`,
+    // aplicando updates solo hasta last_update_prefix.
+    void append_masters_at(size_type depth, std::pair<size_type, size_type> node,
+                           int64_t last_update_prefix, uint32_t term, std::vector<term_master>& out) {
         const value_type infinity = std::numeric_limits<value_type>::max();
-        if (m_payload_components == 1) {
-            value_type cand = 0;
-            while (true) {
-                std::pair<std::pair<size_type, size_type>, size_type> node_pair;
-                const value_type master = static_cast<value_type>(
-                    temporal_successor(0, cur_node, static_cast<int64_t>(l_update), cand, node_pair));
-                if (master == infinity) break;
-                result.push_back({0, master});
-                if (master == infinity - 1) break;
-                cand = master + 1;
-            }
-        } else {
-            value_type term_cand = 0;
-            while (true) {
-                std::pair<std::pair<size_type, size_type>, size_type> first_node;
-                const value_type term = static_cast<value_type>(
-                    temporal_successor(0, cur_node, static_cast<int64_t>(l_update), term_cand, first_node));
-                if (term == infinity) break;
-                value_type master_cand = 0;
-                while (true) {
-                    std::pair<std::pair<size_type, size_type>, size_type> second_node;
-                    const value_type master = static_cast<value_type>(temporal_successor(
-                        1, first_node.first, static_cast<int64_t>(first_node.second), master_cand, second_node));
-                    if (master == infinity) break;
-                    result.push_back({static_cast<uint32_t>(term), master});
-                    if (master == infinity - 1) break;
-                    master_cand = master + 1;
-                }
-                if (term == infinity - 1) break;
-                term_cand = term + 1;
-            }
+        value_type cand = 0;
+        while (true) {
+            std::pair<std::pair<size_type, size_type>, size_type> node_pair;
+            const value_type master = static_cast<value_type>(
+                temporal_successor(depth, node, last_update_prefix, cand, node_pair));
+            if (master == infinity) break;
+            out.push_back({term, master});
+            if (master == infinity - 1) break;
+            cand = master + 1;
+        }
+    }
+
+    // Snapshot S^τ completo: todos los (term, master) activos, o solo masters si per-term.
+    std::vector<term_master> values_at_version(uint32_t tau) {
+        std::vector<term_master> result;
+        size_type last_update_prefix = 0;
+        std::pair<size_type, size_type> root;
+        if (!resolve_at_tau(tau, last_update_prefix, root)) return result;
+        if (m_n_components == 1) {
+            append_masters_at(0, root, static_cast<int64_t>(last_update_prefix), 0, result);
+            return result;
+        }
+        const value_type infinity = std::numeric_limits<value_type>::max();
+        value_type term_cand = 0;
+        while (true) {
+            std::pair<std::pair<size_type, size_type>, size_type> term_node;
+            const value_type term = static_cast<value_type>(temporal_successor(
+                0, root, static_cast<int64_t>(last_update_prefix), term_cand, term_node));
+            if (term == infinity) break;
+            append_masters_at(1, term_node.first, static_cast<int64_t>(term_node.second),
+                              static_cast<uint32_t>(term), result);
+            if (term == infinity - 1) break;
+            term_cand = term + 1;
         }
         return result;
     }
 
-    // Half-open [left,right): find ground interval index containing version v, or interval_count if none.
+    // Índice del suelo que contiene τ, o interval_count si no hay.
     size_type interval_seek(value_type v) const {
         if (m_root_degree == 0) return 0;
         size_type i = 0, f = m_root_degree - 1;
@@ -254,12 +283,13 @@ public:
         return i;
     }
 
+    // True si τ cae en [left, right) del suelo `pos`.
     bool version_in_interval(size_type pos, value_type v) const {
         if (pos >= m_root_degree) return false;
         return m_tempint_left[pos] <= v && v < m_tempint_right[pos];
     }
 
-    // Compact arrays behind the logical trie (for the Graphviz legend).
+    // Texto corto de suelos y last-update para la leyenda Graphviz.
     std::string arrays_debug(uint64_t max_items = 32) const {
         std::ostringstream os;
         const uint64_t n = std::min<uint64_t>(m_root_degree, max_items);
@@ -282,24 +312,32 @@ public:
             os << "\\nultimo intervalo = [" << m_tempint_left[last] << ", " << m_tempint_right[last] << ")";
         }
         os << "\\ntemporal_wm: n_bits=" << m_temporal_ds.get_n_bits()
-           << ", payload_components=" << m_payload_components;
+           << ", n_components=" << m_n_components << " (1=u, 2=(t,u))";
         return os.str();
     }
 
+    // Tamaño para BPI (no se usa en consultas). Por defecto: solo WM serializado (B,E,rank).
+    // Índice completo: descomentar los cuatro sdsl::size_in_bytes y quitar los = 0.
     size_breakdown size_bytes_breakdown() const {
         size_breakdown b;
-        b.bytes_tempint_left = sdsl::size_in_bytes(m_tempint_left);
-        b.bytes_tempint_right = sdsl::size_in_bytes(m_tempint_right);
-        b.bytes_last_update = sdsl::size_in_bytes(m_last_update_per_int) + sdsl::size_in_bytes(m_last_update_pos);
-        b.bytes_last_select = sdsl::size_in_bytes(m_last_update_select1);
+        b.bytes_tempint_left = 0;
+        b.bytes_tempint_right = 0;
+        b.bytes_last_update = 0;
+        b.bytes_last_select = 0;
+        // b.bytes_tempint_left = sdsl::size_in_bytes(m_tempint_left);
+        // b.bytes_tempint_right = sdsl::size_in_bytes(m_tempint_right);
+        // b.bytes_last_update =
+        //     sdsl::size_in_bytes(m_last_update_per_int) + sdsl::size_in_bytes(m_last_update_pos);
+        // b.bytes_last_select = sdsl::size_in_bytes(m_last_update_select1);
         b.wm.bytes_total = wm_serialized_bytes(m_temporal_ds);
         return b;
     }
 
+    // Serializa el trie (suelos, WM, last-update).
     size_type serialize(std::ostream& out, sdsl::structure_tree_node* v = nullptr, std::string name = "") const {
         sdsl::structure_tree_node* child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
         size_type written = 0;
-        written += sdsl::write_member(m_payload_components, out, child, "payload_components");
+        written += sdsl::write_member(m_n_components, out, child, "n_components");
         written += sdsl::write_member(m_root_degree, out, child, "root_degree");
         written += m_tempint_left.serialize(out, child, "tempint_left");
         written += m_tempint_right.serialize(out, child, "tempint_right");
@@ -311,8 +349,9 @@ public:
         return written;
     }
 
+    // Carga el trie y reengancha el select de last-update.
     void load(std::istream& in) {
-        sdsl::read_member(m_payload_components, in);
+        sdsl::read_member(m_n_components, in);
         sdsl::read_member(m_root_degree, in);
         m_tempint_left.load(in);
         m_tempint_right.load(in);
@@ -344,17 +383,18 @@ struct update_type {
     update_type(uint64_t _tuple_index, bool _is_delete) : tuple_index(_tuple_index), is_delete(_is_delete) {}
 };
 
-// Line sweep on interval endpoints -> ground intervals and insert/delete updates.
-// Same logic as cltj_build_compact_tries.hpp, with bounds check when the last
-// batch of equal endpoints falls at the maximum coordinate (OOB on endpoints[i]).
+// Barrido de extremos version_start/version_end → intervalos suelo y updates insert/delete.
 std::vector<std::pair<temporal_interval, std::vector<update_type>>> generate_list_of_updates(
+
     const std::vector<spot_quad>& D) {
     std::vector<interval_endpoint_info> endpoints;
+
     endpoints.reserve(2 * D.size());
     for (uint64_t i = 0; i < D.size(); ++i) {
-        endpoints.emplace_back(D[i][3], false, i);
-        endpoints.emplace_back(D[i][4], true, i);
+        endpoints.emplace_back(D[i][QUAD_VERSION_START], false, i);  // start = insert
+        endpoints.emplace_back(D[i][QUAD_VERSION_END], true, i);     // end = delete
     }
+
     if (endpoints.size() < 2) return {};
     std::sort(endpoints.begin(), endpoints.end(), CompareEndpoints());
 
@@ -383,31 +423,34 @@ std::vector<std::pair<temporal_interval, std::vector<update_type>>> generate_lis
     return ground_intervals;
 }
 
-struct comparator_time_first_payload {
+// Orden time-first del stream de updates: version_start, luego term_id, master_doc, unused.
+struct comparator_time_first {
     const std::vector<spot_quad>& data;
     bool operator()(size_t a, size_t b) const {
-        const spot_quad& t1 = data[a];
-        const spot_quad& t2 = data[b];
-        if (t1[3] != t2[3]) return t1[3] < t2[3];
-        if (t1[0] != t2[0]) return t1[0] < t2[0];
-        if (t1[1] != t2[1]) return t1[1] < t2[1];
-        return t1[2] < t2[2];
+        const spot_quad& q1 = data[a];
+        const spot_quad& q2 = data[b];
+        if (q1[QUAD_VERSION_START] != q2[QUAD_VERSION_START])
+            return q1[QUAD_VERSION_START] < q2[QUAD_VERSION_START];
+        if (q1[QUAD_TERM] != q2[QUAD_TERM]) return q1[QUAD_TERM] < q2[QUAD_TERM];
+        if (q1[QUAD_MASTER] != q2[QUAD_MASTER]) return q1[QUAD_MASTER] < q2[QUAD_MASTER];
+        return q1[QUAD_UNUSED] < q2[QUAD_UNUSED];
     }
 };
 
-// Build time-first trie from ground intervals and sorted update stream.
+// Arma el trie: intervalos suelo, last_update_prefix, stream ordenado y temporal_wm.
+// n_components: 1 = master_doc (per-term); 2 = (term_id, master_doc) (global).
+// is_partial de BGPs no se usa en este fork.
 time_first_trie create_time_first_trie(std::vector<spot_quad>& D,
                                        std::vector<std::pair<temporal_interval, std::vector<update_type>>>& D_T,
-                                       uint64_t n_bits, uint64_t n_tuple_components, bool is_partial,
-                                       uint32_t payload_components) {
+                                       uint64_t n_bits, uint32_t n_components) {
+
     std::vector<temporal_interval> interval_list;
-    sdsl::bit_vector last_update_per_interval;
     uint64_t n_updates = 0;
     for (uint64_t i = 0; i < D_T.size(); ++i) {
         interval_list.push_back(D_T[i].first);
         n_updates += D_T[i].second.size();
     }
-    last_update_per_interval = sdsl::bit_vector(n_updates, 0);
+    sdsl::bit_vector last_update_per_interval(n_updates, 0);
     static constexpr uint64_t kNoUpdateState = std::numeric_limits<uint64_t>::max();
     std::vector<uint64_t> last_update_pos(D_T.size(), kNoUpdateState);
     uint64_t j = 0;
@@ -423,25 +466,30 @@ time_first_trie create_time_first_trie(std::vector<spot_quad>& D,
 
     std::vector<spot_quad> new_D;
     std::vector<bool> is_delete;
+    new_D.reserve(n_updates);
+    is_delete.reserve(n_updates);
     for (uint64_t i = 0; i < D_T.size(); ++i) {
         for (uint64_t k = 0; k < D_T[i].second.size(); ++k) {
-            uint64_t cur_tuple = D_T[i].second[k].tuple_index;
-            new_D.push_back({D[cur_tuple][0], D[cur_tuple][1], D[cur_tuple][2], D_T[i].first.first, D_T[i].first.second});
+            const uint64_t cur_tuple = D_T[i].second[k].tuple_index;
+            new_D.push_back({D[cur_tuple][QUAD_TERM], D[cur_tuple][QUAD_MASTER], D[cur_tuple][QUAD_UNUSED],
+                             D_T[i].first.first, D_T[i].first.second});
             is_delete.push_back(D_T[i].second[k].is_delete);
         }
     }
 
     std::vector<uint64_t> idx(new_D.size());
     std::iota(idx.begin(), idx.end(), 0);
-    std::sort(idx.begin(), idx.end(), comparator_time_first_payload{new_D});
+    std::sort(idx.begin(), idx.end(), comparator_time_first{new_D});
+
     std::vector<spot_quad> sorted_D(new_D.size());
     std::vector<bool> sorted_del(new_D.size());
+
     for (uint64_t i = 0; i < idx.size(); ++i) {
         sorted_D[i] = new_D[idx[i]];
         sorted_del[i] = is_delete[idx[i]];
     }
-    temporal_wm<> temp_ds(sorted_D, sorted_del, n_tuple_components, n_bits, is_partial);
-    return time_first_trie(interval_list, temp_ds, last_update_per_interval, last_update_pos, payload_components);
+    temporal_wm<> temp_ds(sorted_D, sorted_del, n_components, n_bits, /*is_partial=*/false);
+    return time_first_trie(interval_list, temp_ds, last_update_per_interval, last_update_pos, n_components);
 }
 
 // --- .docs I/O (from build-versioned-op.cpp) ---
@@ -454,11 +502,13 @@ struct docs_index {
     std::vector<uint64_t> offsets;
 };
 
+// Lee un u32 little-endian del .docs.
 bool read_u32(std::istream& in, uint32_t& value) {
     in.read(reinterpret_cast<char*>(&value), sizeof(value));
     return in.good();
 }
 
+// Posting list packed64 en `offset`: [u32 len][u64...].
 bool read_posting_list(std::ifstream& in, uint64_t offset, std::vector<uint64_t>& out) {
     in.clear();
     in.seekg(static_cast<std::streamoff>(offset));
@@ -469,6 +519,7 @@ bool read_posting_list(std::ifstream& in, uint64_t offset, std::vector<uint64_t>
     return in.good();
 }
 
+// Offsets por término y máximos de master_doc / version (acota a max_terms).
 docs_index inspect_docs(const std::string& path, uint32_t max_terms) {
     docs_index result;
     std::ifstream in(path.c_str(), std::ios::binary);
@@ -500,19 +551,23 @@ docs_index inspect_docs(const std::string& path, uint32_t max_terms) {
     return result;
 }
 
-struct pair_mr {
-    uint64_t master;
-    uint64_t rel;
-    bool operator<(const pair_mr& o) const {
+struct master_version {
+    uint64_t master;   // documento (u)
+    uint64_t version;  // versión relativa τ del packed64
+    // Orden (master, version) para el RLE.
+    bool operator<(const master_version& o) const {
         if (master != o.master) return master < o.master;
-        return rel < o.rel;
+        return version < o.version;
     }
-    bool operator==(const pair_mr& o) const { return master == o.master && rel == o.rel; }
+    bool operator==(const master_version& o) const {
+        return master == o.master && version == o.version;
+    }
 };
 
-// RLE on consecutive rel per master -> half-open quads [term, master, 0, start, end).
+// RLE por documento: versiones consecutivas del mismo master → un quad global.
+// Resultado: (term_id, master_doc, 0, version_start, version_end).
 void postings_to_quads_rle(uint32_t term, const std::vector<uint64_t>& postings, std::vector<spot_quad>& out) {
-    std::vector<pair_mr> pairs;
+    std::vector<master_version> pairs;
     pairs.reserve(postings.size());
     for (uint64_t p : postings) pairs.push_back({unpack_master(p), unpack_relative(p)});
     std::sort(pairs.begin(), pairs.end());
@@ -520,42 +575,49 @@ void postings_to_quads_rle(uint32_t term, const std::vector<uint64_t>& postings,
     size_t i = 0;
     while (i < pairs.size()) {
         const uint64_t master = pairs[i].master;
-        uint64_t start = pairs[i].rel;
-        uint64_t prev = start;
+        uint64_t version_start = pairs[i].version;
+        uint64_t version_prev = version_start;
         ++i;
         while (i < pairs.size() && pairs[i].master == master) {
-            if (pairs[i].rel == prev + 1) {
-                prev = pairs[i].rel;
+            if (pairs[i].version == version_prev + 1) {
+                version_prev = pairs[i].version;
                 ++i;
                 continue;
             }
-            out.push_back({term, master, 0, start, prev + 1});
-            start = prev = pairs[i].rel;
+            // [(1,2), (1,3), (1,4)] → [(1,2), (1,4)] = [ (doc_global, relative_version), ....]
+            out.push_back(make_global_quad(term, master, version_start, version_prev + 1));
+            version_start = version_prev = pairs[i].version;
             ++i;
         }
-        out.push_back({term, master, 0, start, prev + 1});
+        out.push_back(make_global_quad(term, master, version_start, version_prev + 1));
     }
 }
 
-// One half-open quad per posting (no RLE).
+// Un quad puntual [version, version+1) por cada posting, sin fusionar.
 void postings_to_quads_point(uint32_t term, const std::vector<uint64_t>& postings, std::vector<spot_quad>& out) {
     for (uint64_t p : postings) {
         const uint64_t master = unpack_master(p);
-        const uint64_t rel = unpack_relative(p);
-        out.push_back({term, master, 0, rel, rel + 1});
+        const uint64_t version = unpack_relative(p);
+        out.push_back(make_global_quad(term, master, version, version + 1));
     }
 }
 
+// RLE per-term: el término vive en el trie; el quad es (master_doc, 0, 0, version_start, version_end).
 void postings_to_quads_rle_per_term(const std::vector<uint64_t>& postings, std::vector<spot_quad>& out) {
     const size_t base = out.size();
     postings_to_quads_rle(0, postings, out);
-    for (size_t i = base; i < out.size(); ++i) out[i] = {out[i][1], 0, 0, out[i][3], out[i][4]};
+    for (size_t i = base; i < out.size(); ++i) {
+        out[i] = make_per_term_quad(out[i][QUAD_MASTER], out[i][QUAD_VERSION_START], out[i][QUAD_VERSION_END]);
+    }
 }
 
+// Punto per-term: (master_doc, 0, 0, version, version+1).
 void postings_to_quads_point_per_term(const std::vector<uint64_t>& postings, std::vector<spot_quad>& out) {
     const size_t base = out.size();
     postings_to_quads_point(0, postings, out);
-    for (size_t i = base; i < out.size(); ++i) out[i] = {out[i][1], 0, 0, out[i][3], out[i][4]};
+    for (size_t i = base; i < out.size(); ++i) {
+        out[i] = make_per_term_quad(out[i][QUAD_MASTER], out[i][QUAD_VERSION_START], out[i][QUAD_VERSION_END]);
+    }
 }
 
 enum class build_mode { global, per_term };
@@ -566,14 +628,14 @@ struct docs_metrics {
     uint64_t n_snap_elems = 0;
 };
 
-// Deep scan .docs for BPI denominators (aligned with plus_t/utils/bpi.h).
+// n_raw y pares (master_doc, version) únicos: denominadores del BPI.
 docs_metrics scan_docs_metrics(const std::string& path, uint32_t max_terms) {
     docs_metrics m;
     std::ifstream in(path.c_str(), std::ios::binary);
     uint32_t nlists = 0;
     if (!in.is_open() || !read_u32(in, nlists)) return m;
     const uint32_t limit = (max_terms && max_terms < nlists) ? max_terms : nlists;
-    std::vector<pair_mr> pairs;
+    std::vector<master_version> pairs;
     for (uint32_t term = 0; term < limit; ++term) {
         uint32_t length = 0;
         if (!read_u32(in, length)) break;
@@ -609,30 +671,46 @@ public:
     uint64_t raw_quads = 0;
     uint64_t update_events = 0;
 
+    // Un trie global: quads (term, master, 0, version_start, version_end); WM con 2 componentes (term→master).
     void build_global(const std::string& docs_path, uint32_t max_terms, bool use_rle) {
+
         mode = build_mode::global;
         const docs_index meta = inspect_docs(docs_path, max_terms);
         if (meta.offsets.empty()) return;
         n_terms = meta.nlists;
         std::ifstream docs(docs_path.c_str(), std::ios::binary);
         std::vector<spot_quad> D;
+        D.reserve(static_cast<size_t>(std::min<uint64_t>(meta.postings ? meta.postings : 5000000ull, 5000000ull)));
         std::vector<uint64_t> postings;
+
         const uint32_t bits =
             std::max(bits_required_u64(meta.nlists ? meta.nlists - 1 : 0), bits_required_u64(meta.max_master));
+
         for (uint32_t term = 0; term < meta.nlists; ++term) {
             if (!read_posting_list(docs, meta.offsets[term], postings)) continue;
             if (use_rle)
                 postings_to_quads_rle(term, postings, D);
             else
                 postings_to_quads_point(term, postings, D);
+            if ((term + 1) % 10000u == 0u || term + 1 == meta.nlists) {
+                std::cerr << "[build_global] terms=" << (term + 1) << "/" << meta.nlists
+                          << " quads=" << D.size() << std::endl;
+            }
         }
         raw_quads = D.size();
         if (D.empty()) return;
+        std::cerr << "[build_global] generate_list_of_updates quads=" << D.size() << std::endl;
         auto D_T = generate_list_of_updates(D);
         for (const auto& p : D_T) update_events += p.second.size();
-        global = create_time_first_trie(D, D_T, bits, 2, false, 2);
+        std::cerr << "[build_global] create_time_first_trie intervals=" << D_T.size()
+                  << " updates=" << update_events << std::endl;
+        global = create_time_first_trie(D, D_T, bits, /*n_components=*/2);
+        std::cerr << "[build_global] done\n";
+
+        
     }
 
+    // Un trie por término: quads (master, 0, 0, version_start, version_end); WM con 1 componente (master).
     void build_per_term(const std::string& docs_path, uint32_t max_terms, bool use_rle) {
         mode = build_mode::per_term;
         const docs_index meta = inspect_docs(docs_path, max_terms);
@@ -654,42 +732,37 @@ public:
             if (D.empty()) continue;
             auto D_T = generate_list_of_updates(D);
             for (const auto& p : D_T) update_events += p.second.size();
-            per_term[term] = create_time_first_trie(D, D_T, bits, 1, false, 1);
+            per_term[term] = create_time_first_trie(D, D_T, bits, /*n_components=*/1);
         }
-        (void)use_rle;
     }
 
-    std::vector<triple_tm> values_at(uint32_t version) {
+    // Consulta Q_τ(term, version) → S^τ: documentos activos del término en esa versión.
+    // Global: leap al term_id en el WM; per-term: consulta el trie de ese término.
+    std::vector<term_master> values_at(uint32_t term, uint32_t tau) {
         if (mode == build_mode::global) {
-            std::vector<triple_tm> got = global.values_at_version(version);
-            std::sort(got.begin(), got.end());
-            return got;
-        }
-        std::vector<triple_tm> all;
-        for (uint32_t term = 0; term < n_terms && term < per_term.size(); ++term) {
-            if (per_term[term].interval_count() == 0) continue;
-            for (const triple_tm& t : per_term[term].values_at_version(version))
-                all.push_back({term, t.master});
-        }
-        std::sort(all.begin(), all.end());
-        return all;
-    }
-
-    std::vector<triple_tm> values_at(uint32_t term, uint32_t version) {
-        if (mode == build_mode::global) {
-            std::vector<triple_tm> got;
-            for (const triple_tm& t : global.values_at_version(version))
-                if (t.term == term) got.push_back(t);
+            std::vector<term_master> got;
+            time_first_trie::size_type last_update_prefix = 0;
+            std::pair<time_first_trie::size_type, time_first_trie::size_type> root;
+            if (!global.resolve_at_tau(tau, last_update_prefix, root)) return got;
+            std::pair<std::pair<time_first_trie::size_type, time_first_trie::size_type>,
+                      time_first_trie::size_type>
+                term_node;
+            const auto term_v = static_cast<time_first_trie::value_type>(
+                global.temporal_successor(0, root, static_cast<int64_t>(last_update_prefix),
+                                          static_cast<time_first_trie::value_type>(term), term_node));
+            if (term_v != static_cast<time_first_trie::value_type>(term)) return got;
+            global.append_masters_at(1, term_node.first, static_cast<int64_t>(term_node.second), term, got);
             std::sort(got.begin(), got.end());
             return got;
         }
         if (term >= per_term.size() || per_term[term].interval_count() == 0) return {};
-        std::vector<triple_tm> got;
-        for (const triple_tm& t : per_term[term].values_at_version(version)) got.push_back({term, t.master});
+        std::vector<term_master> got;
+        for (const term_master& row : per_term[term].values_at_version(tau)) got.push_back({term, row.master});
         std::sort(got.begin(), got.end());
         return got;
     }
 
+    // Bytes del índice (un trie o la suma per-term).
     index_size_report size_report() const {
         index_size_report r;
         if (mode == build_mode::global) {
@@ -706,6 +779,7 @@ public:
         return r;
     }
 
+    // Serializa modo, contadores y el o los tries (.emt).
     size_type serialize(std::ostream& out, sdsl::structure_tree_node* v = nullptr, std::string name = "") const {
         sdsl::structure_tree_node* child = sdsl::structure_tree::add_child(v, name, sdsl::util::class_name(*this));
         uint8_t m = static_cast<uint8_t>(mode);
@@ -723,6 +797,7 @@ public:
         return w;
     }
 
+    // Carga un .emt (global o vector per-term).
     void load(std::istream& in) {
         uint8_t m = 0;
         sdsl::read_member(m, in);
@@ -740,20 +815,14 @@ public:
     }
 };
 
-static double bpi_from_bytes(uint64_t bytes, uint64_t n) {
-    if (n == 0) return 0.0;
-    return (static_cast<double>(bytes) * 8.0) / static_cast<double>(n);
-}
-
-// --- Graphviz dump of the LOGICAL time-first trie (demo only, small inputs) ---
-// Walks the compact structure itself (interval array + temporal_wm via values_at_version).
+// DOT del trie lógico (suelos + S^τ); solo inputs chicos.
 bool dump_trie_dot(time_first_trie& trie, const std::string& out_path, const std::string& title,
-                   uint64_t max_intervals, uint64_t max_payload) {
+                   uint64_t max_intervals, uint64_t max_answer) {
     std::ofstream out(out_path.c_str());
     if (!out.is_open()) return false;
     const uint64_t n_int = trie.interval_count();
     const uint64_t shown = std::min(n_int, max_intervals);
-    const bool two_levels = trie.payload_components() == 2;
+    const bool has_term = trie.n_components() == 2;
 
     out << "digraph metatrie {\n";
     out << "  rankdir=TB;\n  bgcolor=\"white\";\n";
@@ -768,42 +837,42 @@ bool dump_trie_dot(time_first_trie& trie, const std::string& out_path, const std
     for (uint64_t i = 0; i < shown; ++i) {
         const std::pair<uint32_t, uint32_t> iv = trie.get_interval_at_pos(i);
         const uint64_t lu = trie.get_last_update_of_interval(i);
-        out << "  I" << i << " [label=\"[" << iv.first << ", " << iv.second << ")\\nlast_update=" << lu
+        out << "  I" << i << " [label=\"[" << iv.first << ", " << iv.second << ")\\nlast_update(p_l)=" << lu
             << "\", shape=box, style=filled, fillcolor=\"#bfdbfe\", color=\"#1d4ed8\"];\n";
         out << "  root -> I" << i << " [label=\"" << i << "\"];\n";
 
-        std::vector<triple_tm> payload = trie.values_at_version(iv.first);
-        if (payload.empty()) {
+        std::vector<term_master> snap = trie.values_at_version(iv.first);
+        if (snap.empty()) {
             out << "  E" << i << " [label=\"(vacio)\", shape=plaintext, fontcolor=\"#94a3b8\"];\n";
             out << "  I" << i << " -> E" << i << ";\n";
             continue;
         }
-        const uint64_t p_shown = std::min<uint64_t>(payload.size(), max_payload);
-        if (two_levels) {
+        const uint64_t p_shown = std::min<uint64_t>(snap.size(), max_answer);
+        if (has_term) {
             uint64_t k = 0;
             while (k < p_shown) {
-                const uint32_t term = payload[k].term;
-                out << "  T" << i << "_" << term << " [label=\"term " << term
+                const uint32_t term = snap[k].term;
+                out << "  T" << i << "_" << term << " [label=\"t=" << term
                     << "\", shape=box, style=filled, fillcolor=\"#fef3c7\", color=\"#d97706\"];\n";
                 out << "  I" << i << " -> T" << i << "_" << term << ";\n";
-                while (k < p_shown && payload[k].term == term) {
-                    out << "  M" << i << "_" << term << "_" << payload[k].master << " [label=\"u="
-                        << payload[k].master << "\", shape=ellipse, style=filled, fillcolor=\"#dcfce7\", "
+                while (k < p_shown && snap[k].term == term) {
+                    out << "  M" << i << "_" << term << "_" << snap[k].master << " [label=\"u="
+                        << snap[k].master << "\", shape=ellipse, style=filled, fillcolor=\"#dcfce7\", "
                            "color=\"#15803d\"];\n";
-                    out << "  T" << i << "_" << term << " -> M" << i << "_" << term << "_" << payload[k].master
+                    out << "  T" << i << "_" << term << " -> M" << i << "_" << term << "_" << snap[k].master
                         << ";\n";
                     ++k;
                 }
             }
         } else {
             for (uint64_t k = 0; k < p_shown; ++k) {
-                out << "  M" << i << "_" << payload[k].master << " [label=\"u=" << payload[k].master
+                out << "  M" << i << "_" << snap[k].master << " [label=\"u=" << snap[k].master
                     << "\", shape=ellipse, style=filled, fillcolor=\"#dcfce7\", color=\"#15803d\"];\n";
-                out << "  I" << i << " -> M" << i << "_" << payload[k].master << ";\n";
+                out << "  I" << i << " -> M" << i << "_" << snap[k].master << ";\n";
             }
         }
-        if (p_shown < payload.size()) {
-            out << "  X" << i << " [label=\"... +" << (payload.size() - p_shown)
+        if (p_shown < snap.size()) {
+            out << "  X" << i << " [label=\"... +" << (snap.size() - p_shown)
                 << "\", shape=plaintext, fontcolor=\"#94a3b8\"];\n";
             out << "  I" << i << " -> X" << i << ";\n";
         }
@@ -824,18 +893,21 @@ bool dump_trie_dot(time_first_trie& trie, const std::string& out_path, const std
     return true;
 }
 
+// stdout BPI tras build. bytes_total = suma size_bytes_breakdown (hoy ≈ solo WM).
+// Ver: meta_trie_edd <global|per-term> file.docs [--validate-terms N] [--csv path]
 void print_size_report(const index_size_report& rep, const docs_metrics& dm, build_mode mode) {
-    const uint64_t bits_total = rep.bytes_total * 8;
     std::cout << "mode=" << (mode == build_mode::global ? "global" : "per-term") << "\n";
     std::cout << "bytes_total=" << rep.bytes_total << "\n";
-    std::cout << "bits_total=" << bits_total << "\n";
     std::cout << "n_raw=" << dm.n_raw << "\n";
     std::cout << "n_pairs_uniq=" << dm.n_pairs_uniq << "\n";
     std::cout << "n_snap_elems=" << dm.n_snap_elems << "\n";
-    std::cout << std::setprecision(8) << "bpi_file=" << bpi_from_bytes(rep.bytes_total, dm.n_raw) << "\n";
-    std::cout << "bpi_over_pairs=" << bpi_from_bytes(rep.bytes_total, dm.n_pairs_uniq) << "\n";
-    std::cout << "bpi_over_stored=" << bpi_from_bytes(rep.bytes_total, dm.n_snap_elems) << "\n";
-    std::cout << "bpi_total=" << bpi_from_bytes(rep.bytes_total, dm.n_raw) << "\n";
+    // NzddBpi::bpiFromBytes (plus_t/utils/bpi.h): (bytes_total×8)/n. Canónico: bpi_file / n_raw.
+
+    std::cout << std::setprecision(8) << "bpi_file=" << NzddBpi::bpiFromBytes(rep.bytes_total, dm.n_raw)
+              << "\n";
+    std::cout << "bpi_over_pairs=" << NzddBpi::bpiFromBytes(rep.bytes_total, dm.n_pairs_uniq) << "\n";
+    std::cout << "bpi_over_stored=" << NzddBpi::bpiFromBytes(rep.bytes_total, dm.n_snap_elems) << "\n";
+    std::cout << "bpi_total=" << NzddBpi::bpiFromBytes(rep.bytes_total, dm.n_raw) << "\n";
     if (mode == build_mode::global) {
         const auto& b = rep.global_bd;
         std::cout << "bytes_wm_total=" << b.wm.bytes_total << "\n";
@@ -845,6 +917,7 @@ void print_size_report(const index_size_report& rep, const docs_metrics& dm, bui
     }
 }
 
+// Versiones de borde (y vecinas ±1) alrededor de cada posting, para validar snapshots.
 std::vector<uint32_t> validation_times(const std::vector<uint64_t>& postings) {
     std::vector<uint32_t> times;
     times.push_back(0);
@@ -862,53 +935,57 @@ std::vector<uint32_t> validation_times(const std::vector<uint64_t>& postings) {
     return times;
 }
 
-std::vector<uint64_t> expected_masters(const std::vector<uint64_t>& postings, uint32_t relative) {
-    std::vector<pair_mr> pairs;
+// Documentos activos en `version` según el RLE del .docs (ground truth).
+std::vector<uint64_t> expected_masters(const std::vector<uint64_t>& postings, uint32_t version) {
+    std::vector<master_version> pairs;
     for (uint64_t p : postings) pairs.push_back({unpack_master(p), unpack_relative(p)});
     std::sort(pairs.begin(), pairs.end());
     pairs.erase(std::unique(pairs.begin(), pairs.end()), pairs.end());
     std::vector<uint64_t> masters;
     size_t i = 0;
-    const uint64_t rel = relative;
+    const uint64_t ver = version;
     while (i < pairs.size()) {
         const uint64_t master = pairs[i].master;
-        uint64_t start = pairs[i].rel;
-        uint64_t prev = start;
+        uint64_t version_start = pairs[i].version;
+        uint64_t version_prev = version_start;
         ++i;
         while (i < pairs.size() && pairs[i].master == master) {
-            if (pairs[i].rel == prev + 1) {
-                prev = pairs[i].rel;
+            if (pairs[i].version == version_prev + 1) {
+                version_prev = pairs[i].version;
                 ++i;
                 continue;
             }
-            if (start <= rel && rel <= prev) masters.push_back(master);
-            start = prev = pairs[i].rel;
+            if (version_start <= ver && ver <= version_prev) masters.push_back(master);
+            version_start = version_prev = pairs[i].version;
             ++i;
         }
-        if (start <= rel && rel <= prev) masters.push_back(master);
+        if (version_start <= ver && ver <= version_prev) masters.push_back(master);
     }
     std::sort(masters.begin(), masters.end());
     masters.erase(std::unique(masters.begin(), masters.end()), masters.end());
     return masters;
 }
 
-static std::vector<triple_tm> expected_triples_at(const std::vector<uint64_t>& postings, uint32_t term,
-                                                  uint32_t relative) {
-    std::vector<triple_tm> exp;
-    for (uint64_t m : expected_masters(postings, relative)) exp.push_back({term, m});
+// Ground truth como pares (term, master) activos en `version`.
+static std::vector<term_master> expected_term_masters_at(const std::vector<uint64_t>& postings, uint32_t term,
+                                                        uint32_t version) {
+    std::vector<term_master> exp;
+    for (uint64_t m : expected_masters(postings, version)) exp.push_back({term, m});
     std::sort(exp.begin(), exp.end());
     return exp;
 }
 
-static void print_mismatch(uint32_t term, uint32_t rel, const std::vector<triple_tm>& got,
-                           const std::vector<triple_tm>& exp) {
-    std::cerr << "MISMATCH term=" << term << " rel=" << rel << " got={";
+// Imprime un mismatch (term, version) got vs esperado.
+static void print_mismatch(uint32_t term, uint32_t version, const std::vector<term_master>& got,
+                           const std::vector<term_master>& exp) {
+    std::cerr << "MISMATCH term=" << term << " version=" << version << " got={";
     for (size_t i = 0; i < got.size(); ++i) std::cerr << (i ? "," : "") << got[i].master;
     std::cerr << "} exp={";
     for (size_t i = 0; i < exp.size(); ++i) std::cerr << (i ? "," : "") << exp[i].master;
     std::cerr << "}\n";
 }
 
+// Compara values_at contra el .docs en los primeros K términos.
 uint64_t validate_index(meta_trie_edd& index, const std::string& docs_path, const docs_index& meta,
                         uint32_t validate_terms, build_mode mode, uint32_t debug_limit) {
     uint64_t mismatches = 0;
@@ -921,17 +998,128 @@ uint64_t validate_index(meta_trie_edd& index, const std::string& docs_path, cons
             continue;
         }
         const std::vector<uint32_t> times = validation_times(postings);
-        for (uint32_t rel : times) {
-            const std::vector<triple_tm> exp = expected_triples_at(postings, term, rel);
-            const std::vector<triple_tm> got = index.values_at(term, rel);
+        for (uint32_t version : times) {
+            const std::vector<term_master> exp = expected_term_masters_at(postings, term, version);
+            const std::vector<term_master> got = index.values_at(term, version);
             if (got != exp) {
-                if (mismatches < debug_limit) print_mismatch(term, rel, got, exp);
+                if (mismatches < debug_limit) print_mismatch(term, version, got, exp);
                 ++mismatches;
             }
         }
     }
     (void)mode;
     return mismatches;
+}
+
+// Consulta Q_τ: término t en versión τ.
+struct term_version_query {
+    uint32_t term = 0;     // t — id de posting list
+    uint32_t version = 0;  // τ — versión relativa a consultar
+};
+
+struct bench_result {
+    uint64_t n_queries = 0;
+    uint64_t reps = 0;
+    uint64_t mismatches = 0;
+    uint64_t total_answer_size = 0;
+    double docs_scan_s = 0.0;
+    double metatrie_s = 0.0;
+};
+
+// Arma hasta n_queries consultas (term, version) en round-robin:
+// cicla términos 0..term_limit-1 y, en cada pasada, avanza al siguiente tiempo
+// de validación de ese término (evita sesgar el bench a los primeros términos).
+std::vector<term_version_query> sample_queries(const std::string& docs_path, const docs_index& meta,
+                                       uint32_t term_limit, uint32_t n_queries) {
+    std::vector<term_version_query> out;
+    if (n_queries == 0 || term_limit == 0) return out;
+    out.reserve(n_queries);
+    std::ifstream docs(docs_path.c_str(), std::ios::binary);
+    std::vector<std::vector<uint32_t>> times_per_term(term_limit);
+    std::vector<uint64_t> postings;
+    for (uint32_t term = 0; term < term_limit; ++term) {
+        if (!read_posting_list(docs, meta.offsets[term], postings)) continue;
+        times_per_term[term] = validation_times(postings);
+    }
+    uint64_t guard = 0;
+    while (out.size() < n_queries && guard < static_cast<uint64_t>(n_queries) * 8u) {
+        const uint32_t term = static_cast<uint32_t>(out.size() % term_limit);
+        const auto& times = times_per_term[term];
+        if (!times.empty()) {
+            const uint32_t version = times[(out.size() / term_limit) % times.size()];
+            out.push_back({term, version});
+        }
+        ++guard;
+        if (times.empty() && term + 1 >= term_limit && out.empty()) break;
+    }
+    return out;
+}
+
+// Cronometra docs_scan vs values_at y cuenta mismatches.
+bench_result run_query_bench(meta_trie_edd& index, const std::string& docs_path, const docs_index& meta,
+                             const std::vector<term_version_query>& queries, uint32_t reps) {
+    bench_result br;
+    br.n_queries = queries.size();
+    br.reps = reps == 0 ? 1 : reps;
+    if (queries.empty()) return br;
+
+    uint32_t max_term = 0;
+    for (const term_version_query& q : queries) max_term = std::max(max_term, q.term);
+    const uint32_t term_limit = std::min(max_term + 1, meta.nlists);
+
+    std::ifstream docs(docs_path.c_str(), std::ios::binary);
+    std::vector<std::vector<uint64_t>> postings_by_term(term_limit);
+    for (uint32_t t = 0; t < term_limit; ++t) {
+        if (!read_posting_list(docs, meta.offsets[t], postings_by_term[t])) {
+            postings_by_term[t].clear();
+        }
+    }
+
+    // Warm-up (untimed): touch both paths once.
+    for (const term_version_query& q : queries) {
+        if (q.term >= term_limit) continue;
+        (void)expected_masters(postings_by_term[q.term], q.version);
+        (void)index.values_at(q.term, q.version);
+    }
+
+    const auto t_docs0 = std::chrono::steady_clock::now();
+    for (uint32_t r = 0; r < br.reps; ++r) {
+        for (const term_version_query& q : queries) {
+            if (q.term >= term_limit) continue;
+            const std::vector<uint64_t> got = expected_masters(postings_by_term[q.term], q.version);
+            br.total_answer_size += got.size();
+        }
+    }
+    br.docs_scan_s =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - t_docs0).count();
+
+    const auto t_mt0 = std::chrono::steady_clock::now();
+    for (uint32_t r = 0; r < br.reps; ++r) {
+        for (const term_version_query& q : queries) {
+            const std::vector<term_master> got = index.values_at(q.term, q.version);
+            if (r == 0) {
+                if (q.term >= term_limit) {
+                    ++br.mismatches;
+                    continue;
+                }
+                const std::vector<uint64_t> exp = expected_masters(postings_by_term[q.term], q.version);
+                if (got.size() != exp.size()) {
+                    ++br.mismatches;
+                } else {
+                    for (size_t i = 0; i < got.size(); ++i) {
+                        if (got[i].master != exp[i]) {
+                            ++br.mismatches;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    br.metatrie_s = std::chrono::duration<double>(std::chrono::steady_clock::now() - t_mt0).count();
+    // total_answer_size counted only on docs path × reps; normalize to one pass for reporting.
+    if (br.reps > 0) br.total_answer_size /= br.reps;
+    return br;
 }
 
 struct cli_options {
@@ -945,10 +1133,15 @@ struct cli_options {
     std::string dump_dot_path;
     uint32_t dump_term = 0;
     uint64_t dump_max_intervals = 40;
-    uint64_t dump_max_payload = 16;
+    uint64_t dump_max_answer = 16;
     uint32_t debug_mismatches = 0;
+    uint32_t bench_queries = 0;
+    uint32_t bench_reps = 5;
+    std::string bench_csv_path;
+    std::string bench_queries_out;
 };
 
+// CLI: modo, .docs y flags de build, validación, bench y dump.
 bool parse_args(int argc, char** argv, cli_options& opt) {
     if (argc < 3) return false;
     const std::string mode_str = argv[1];
@@ -977,10 +1170,18 @@ bool parse_args(int argc, char** argv, cli_options& opt) {
             opt.dump_term = static_cast<uint32_t>(std::strtoul(argv[++i], nullptr, 10));
         } else if (a == "--dump-max-intervals" && i + 1 < argc) {
             opt.dump_max_intervals = std::strtoull(argv[++i], nullptr, 10);
-        } else if (a == "--dump-max-payload" && i + 1 < argc) {
-            opt.dump_max_payload = std::strtoull(argv[++i], nullptr, 10);
+        } else if ((a == "--dump-max-answer" || a == "--dump-max-payload") && i + 1 < argc) {
+            opt.dump_max_answer = std::strtoull(argv[++i], nullptr, 10);
         } else if (a == "--debug-mismatches" && i + 1 < argc) {
             opt.debug_mismatches = static_cast<uint32_t>(std::strtoul(argv[++i], nullptr, 10));
+        } else if (a == "--bench-queries" && i + 1 < argc) {
+            opt.bench_queries = static_cast<uint32_t>(std::strtoul(argv[++i], nullptr, 10));
+        } else if (a == "--bench-reps" && i + 1 < argc) {
+            opt.bench_reps = static_cast<uint32_t>(std::strtoul(argv[++i], nullptr, 10));
+        } else if (a == "--bench-csv" && i + 1 < argc) {
+            opt.bench_csv_path = argv[++i];
+        } else if (a == "--bench-queries-out" && i + 1 < argc) {
+            opt.bench_queries_out = argv[++i];
         } else {
             return false;
         }
@@ -990,13 +1191,15 @@ bool parse_args(int argc, char** argv, cli_options& opt) {
 
 }  // namespace edd
 
+// Build, métricas, validacióo y bench/dump/serialize opcionales.
 int main(int argc, char** argv) {
     edd::cli_options opt;
     if (!edd::parse_args(argc, argv, opt)) {
         std::cerr << "Usage: " << argv[0]
                   << " <global|per-term> <input.docs> [--max-terms N] [--validate-terms N] [--no-rle] [--csv path] "
                      "[--serialize out.emt] [--dump-dot out.dot [--dump-term T] [--dump-max-intervals N] "
-                     "[--dump-max-payload N]] [--debug-mismatches N]\n";
+                     "[--dump-max-answer N]] [--debug-mismatches N] "
+                     "[--bench-queries N [--bench-reps R] [--bench-csv path] [--bench-queries-out path]]\n";
         return 1;
     }
 
@@ -1008,14 +1211,18 @@ int main(int argc, char** argv) {
 
     edd::meta_trie_edd index;
     const auto t0 = std::chrono::steady_clock::now();
+
     if (opt.mode == edd::build_mode::global)
         index.build_global(opt.docs_path, opt.max_terms, opt.use_rle);
     else
         index.build_per_term(opt.docs_path, opt.max_terms, opt.use_rle);
+
     const double build_s = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
     const edd::docs_metrics dm = edd::scan_docs_metrics(opt.docs_path, opt.max_terms);
     const edd::index_size_report rep = index.size_report();
     edd::print_size_report(rep, dm, opt.mode);
+
+
     std::cout << "raw_quads=" << index.raw_quads << "\n";
     std::cout << "update_events=" << index.update_events << "\n";
     std::cout << "build_s=" << build_s << "\n";
@@ -1025,17 +1232,62 @@ int main(int argc, char** argv) {
     std::cout << "validation_mismatches=" << mismatches << "\n";
     if (mismatches != 0) return 2;
 
+    if (opt.bench_queries > 0) {
+        const uint32_t term_cap =
+            std::min(opt.validate_terms == 0 ? meta.nlists : opt.validate_terms, meta.nlists);
+        const std::vector<edd::term_version_query> queries =
+            edd::sample_queries(opt.docs_path, meta, term_cap, opt.bench_queries);
+        const edd::bench_result br =
+            edd::run_query_bench(index, opt.docs_path, meta, queries, opt.bench_reps);
+        const double n_ops = static_cast<double>(br.n_queries) * static_cast<double>(br.reps);
+        const double docs_ns = (n_ops > 0.0) ? (br.docs_scan_s * 1e9 / n_ops) : 0.0;
+        const double mt_ns = (n_ops > 0.0) ? (br.metatrie_s * 1e9 / n_ops) : 0.0;
+        std::cout << "bench_n_queries=" << br.n_queries << "\n";
+        std::cout << "bench_reps=" << br.reps << "\n";
+        std::cout << "bench_mismatches=" << br.mismatches << "\n";
+        std::cout << "bench_avg_answer_size="
+                  << (br.n_queries ? (static_cast<double>(br.total_answer_size) / br.n_queries) : 0.0)
+                  << "\n";
+        std::cout << "bench_docs_scan_s=" << br.docs_scan_s << "\n";
+        std::cout << "bench_metatrie_s=" << br.metatrie_s << "\n";
+        std::cout << "bench_docs_scan_ns_per_query=" << docs_ns << "\n";
+        std::cout << "bench_metatrie_ns_per_query=" << mt_ns << "\n";
+
+        if (!opt.bench_queries_out.empty()) {
+            std::ofstream qf(opt.bench_queries_out.c_str());
+            qf << "term,rel\n";
+            for (const edd::term_version_query& q : queries) qf << q.term << ',' << q.version << '\n';
+            std::cout << "bench_queries_out=" << opt.bench_queries_out << "\n";
+        }
+        if (!opt.bench_csv_path.empty()) {
+            std::ofstream csv(opt.bench_csv_path.c_str());
+            csv << "structure,mode,docs,n_queries,reps,mismatches,avg_answer_size,"
+                   "total_s,ns_per_query\n";
+            const char* mode_s = (opt.mode == edd::build_mode::global ? "global" : "per-term");
+            csv << "docs_scan," << mode_s << ',' << opt.docs_path << ',' << br.n_queries << ','
+                << br.reps << ',' << br.mismatches << ','
+                << (br.n_queries ? (static_cast<double>(br.total_answer_size) / br.n_queries) : 0.0)
+                << ',' << br.docs_scan_s << ',' << docs_ns << '\n';
+            csv << "metatrie," << mode_s << ',' << opt.docs_path << ',' << br.n_queries << ','
+                << br.reps << ',' << br.mismatches << ','
+                << (br.n_queries ? (static_cast<double>(br.total_answer_size) / br.n_queries) : 0.0)
+                << ',' << br.metatrie_s << ',' << mt_ns << '\n';
+            std::cout << "bench_csv=" << opt.bench_csv_path << "\n";
+        }
+        if (br.mismatches != 0) return 3;
+    }
+
     if (!opt.dump_dot_path.empty()) {
         std::ostringstream title;
         bool ok = false;
         if (opt.mode == edd::build_mode::global) {
-            title << "EDD metatrie (global) — payload (term, master) — " << opt.docs_path;
+            title << "EDD metatrie (global) — S^τ = (t,u) — " << opt.docs_path;
             ok = edd::dump_trie_dot(index.global, opt.dump_dot_path, title.str(), opt.dump_max_intervals,
-                                    opt.dump_max_payload);
+                                    opt.dump_max_answer);
         } else if (opt.dump_term < index.per_term.size()) {
-            title << "EDD metatrie (per-term) — term " << opt.dump_term << " — " << opt.docs_path;
+            title << "EDD metatrie (per-term) — t=" << opt.dump_term << " — " << opt.docs_path;
             ok = edd::dump_trie_dot(index.per_term[opt.dump_term], opt.dump_dot_path, title.str(),
-                                    opt.dump_max_intervals, opt.dump_max_payload);
+                                    opt.dump_max_intervals, opt.dump_max_answer);
         } else {
             std::cerr << "ERROR: --dump-term " << opt.dump_term << " fuera de rango\n";
             return 1;
@@ -1058,11 +1310,11 @@ int main(int argc, char** argv) {
     if (!opt.csv_path.empty()) {
         std::ofstream csv(opt.csv_path.c_str());
         csv << "mode,bytes_total,n_raw,bpi_file,bpi_over_pairs,bpi_over_stored,bpi_total,build_s\n";
-        const double bpi_file = edd::bpi_from_bytes(rep.bytes_total, dm.n_raw);
+        const double bpi_file = NzddBpi::bpiFromBytes(rep.bytes_total, dm.n_raw);
         csv << (opt.mode == edd::build_mode::global ? "global" : "per-term") << ','
             << rep.bytes_total << ',' << dm.n_raw << ',' << std::setprecision(8) << bpi_file << ','
-            << edd::bpi_from_bytes(rep.bytes_total, dm.n_pairs_uniq) << ','
-            << edd::bpi_from_bytes(rep.bytes_total, dm.n_snap_elems) << ',' << bpi_file << ',' << build_s
+            << NzddBpi::bpiFromBytes(rep.bytes_total, dm.n_pairs_uniq) << ','
+            << NzddBpi::bpiFromBytes(rep.bytes_total, dm.n_snap_elems) << ',' << bpi_file << ',' << build_s
             << '\n';
     }
     return 0;

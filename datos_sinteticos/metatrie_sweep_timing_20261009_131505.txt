@@ -1,0 +1,6 @@
+START 2026-10-09T13:15:05-03:00
+[chain] waiting for recipe sweep pid=5558
+[chain] recipe sweep ended 2026-10-09T13:47:14-03:00
+recipes csv status {'ok': 36} ok_wall_s_sum 1159
+[chain] START resultados_test synthetics 2026-10-09T13:47:14-03:00
+[chain] END all 2026-10-09T14:00:55-03:00

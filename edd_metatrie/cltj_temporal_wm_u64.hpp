@@ -45,6 +45,7 @@ protected:
 //    rank_1_type m_E_aux_rank;
 
 
+    // Copia B/E y reengancha los rank al vector propio.
     void copy(const temporal_wm& wm) {
             m_n_updates  = wm.m_n_updates;
             m_tuple_comp = wm.m_tuple_comp;
@@ -61,6 +62,7 @@ protected:
             // m_E_aux_rank = wm.m_E_aux_rank;
     }
 
+    // Campo i del spot_quad: 0=term_id, 1=master_doc, 2=unused, 3=version_start, 4=version_end.
     static uint64_t get_component(const spot_quad& t, size_type component) {
         return t[component];
     }
@@ -68,6 +70,7 @@ protected:
 
     // Hash for std::tuple<uint64_t,uint64_t,uint64_t>
     struct TripleHash {
+        // Hash de prefijo (p0,p1,p2) para contar símbolos iguales al armar B.
         std::size_t operator()(const std::tuple<uint64_t,uint64_t,uint64_t> &t) const noexcept {
             auto [a,b,c] = t;
             std::size_t h = std::hash<uint64_t>{}(a);
@@ -78,6 +81,7 @@ protected:
     };
 
     // Extracts bits_to_use most-significant bits from val, which has total_bits bits
+    // Los `bits_to_use` bits más significativos de un componente.
     static inline uint64_t top_bits(uint64_t val, int bits_to_use, int total_bits) {
         if (bits_to_use <= 0) return 0;
         if (bits_to_use >= total_bits) return val;
@@ -85,6 +89,7 @@ protected:
     }
 
 
+    // Bit i del valor (term_id / master_doc), leído de MSB a LSB por componente.
     static bool get_accumulated_bit(const spot_quad & t, int i, int bits_per_component) {
         int comp = i / bits_per_component;        // determines the component
         int bit_in_comp = i % bits_per_component; // position within the component
@@ -110,6 +115,7 @@ protected:
                         : data(d), total_bits_used(total_bits),
                         bits_per_component(bits_per_comp), num_components(n_comp) {}
 
+        // Orden estable por el prefijo de bits ya emitidos.
         bool operator() (size_type a, size_type b) const {
             int bits_left = total_bits_used;
             for (int c = 0; c < num_components && bits_left > 0; ++c) {
@@ -123,6 +129,7 @@ protected:
         }
     };
 
+    // Construye bitvectors B y E (paper §6) con sort estable por prefijo.
     void generate_B_E_stable_prefix_sort(const std::vector<spot_quad>& data, std::vector<bool>& delete_flags,
                                          int bits) {
         size_type n = data.size();
@@ -131,9 +138,7 @@ protected:
             idx[i] = i;
 
         size_type bit_in_B = 0, bit_in_E = 0;
-        size_type diff_delete, j;
-
-        diff_delete = 0;
+        size_type diff_delete = 0;
         for (size_type i = 0; i < n; ++i) {
             diff_delete += (delete_flags[i])?-1:1;
             m_E[bit_in_E++] = (diff_delete == 0) ? 0 : 1;
@@ -210,18 +215,20 @@ protected:
         }
     }
 
+    // rank1(B) en el rango [s,e] del nivel `depth`.
     int64_t rank_range_B(size_type depth, size_type s, size_type e) {
         return m_B_rank(depth*m_n_updates+e+1) - m_B_rank(depth*m_n_updates + s);
     }
 
+    // rank1(E) en el rango [s,e] del nivel `depth`.
     int64_t rank_range_E(size_type depth, size_type s, size_type e) {
         return m_E_rank(depth*m_n_updates+e+1) - m_E_rank(depth*m_n_updates + s);
     }
 
-    // Must not collide with valid WM payloads (masters up to 40 bits); callers use uint64_t infinity.
+    // No choca con masters válidos (hasta 40 bits); callers usan uint64_t::max como ∞.
     static constexpr uint64_t INFTY = std::numeric_limits<uint64_t>::max();
 
-    // parameter depth is the depth in the VBT
+    // Menor símbolo ≥ en el subárbol (hijo 0, si no el hijo 1).
     size_type leftmost(size_type depth, int64_t s, int64_t e, int64_t p, size_type h,
                        std::pair<std::pair<size_type, size_type>, size_type>& node_pair) {
         if (p < 0 || s > e) return INFTY;
@@ -249,6 +256,7 @@ public:
  
     temporal_wm() = default;
 
+    // Arma B/E desde el stream de updates ya ordenado time-first.
     temporal_wm(const std::vector<spot_quad>& update_tuples, std::vector<bool> is_delete,
                 size_type n_tuple_components, size_type n_bits, bool is_partial = false) {
 
@@ -337,6 +345,7 @@ public:
     }
 
     //! Swap operator
+    // Intercambia dos WM y reengancha los rank supports.
     void swap(temporal_wm& wm) {
         if (this != &wm) {
             std::swap(m_n_updates, wm.m_n_updates);
@@ -353,20 +362,15 @@ public:
         }
     }
 
-    size_type get_n_bits() {
-        return m_n_bits;
-    }
+    // Ancho en bits de cada componente (t y/o u).
+    size_type get_n_bits() const { return m_n_bits; }
 
-    // produces the interval corresponding to the root of the temporal data structure
-    std::pair<size_type, size_type> get_root() {
+    // Intervalo raíz [0, n_updates).
+    std::pair<size_type, size_type> get_root() const {
         return std::make_pair(0, m_n_updates - 1);
     }
 
-    // yields the number of children in the (simulated) trie
-    size_type node_degree(size_type depth, size_type pos, std::pair<size_type, size_type> node) {
-        return rank_range_E(depth, node.first, node.first + pos);
-    }
-    
+    // Sucesor ≥ x (t o u) en el WM; si el bit es 0 y no hay match, cae a leftmost.
     size_type leap(size_type depth, int64_t s, int64_t e, int64_t p, value_type x, size_type h,
                    std::pair<std::pair<size_type, size_type>, size_type> &  node_pair) {
 
@@ -399,6 +403,7 @@ public:
     }
     
     //! Serializes the data structure into the given ostream
+    // Escribe n_updates, bits, B, E y ranks.
     size_type serialize(std::ostream& out, structure_tree_node* v=nullptr, std::string name="") const {
         structure_tree_node* child = structure_tree::add_child(v, name, sdsl::util::class_name(*this));
         size_type written_bytes = 0;
@@ -418,6 +423,7 @@ public:
     }
 
     //! Loads the data structure from the given istream.
+    // Carga el WM y reengancha ranks a B y E.
     void load(std::istream& in) {
         read_member(m_n_updates, in);
         read_member(m_tuple_comp, in);

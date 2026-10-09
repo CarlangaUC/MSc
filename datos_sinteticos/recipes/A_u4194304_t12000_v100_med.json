@@ -7,9 +7,9 @@
       "validation_mismatches": "0"
     },
     "per-term": {
-      "bpi_file": "3.1112778",
-      "bpi_over_stored": "3.3991093",
-      "bytes_total": "28869288",
+      "bpi_file": "3.0200965",
+      "bpi_over_stored": "3.2994926",
+      "bytes_total": "28023224",
       "validation_mismatches": "0"
     }
   },

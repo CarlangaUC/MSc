@@ -1,0 +1,466 @@
+% ============================================================================
+% Metatrie (definición antes del sintético y de sus resultados)
+% PATCH 2026-10-09: n_components; cifras PT actualizadas; afirmación PT/GL corregida
+% ============================================================================
+
+\section{EDD Metatrie en tiempo}
+\label{sec:metatrie}
+
+Backbone~2 representa, por término, la secuencia de snapshots $\{S^\tau\}$ como un
+ZDD $F_t$ en un DAG global compartido. La \textbf{metatrie} es una representación
+alternativa de la misma membresía $M\subseteq U\times T$, orientada a
+\textbf{intervalos temporales} por documento.
+
+\subsection{Metatrie: marco, construcción e implementación}
+\label{subsec:metatrie-impl}
+
+Comprime \emph{cuándo} cada master $u$ permanece activo en $\tau$, en lugar de
+materializar cada snapshot como subgrafo ZDD.
+La referencia algorítmica es el esquema \emph{time-first} de grafos temporales
+CLTJ~\cite{Arroyuelo2026TemporalBGPs} (quads half-open, barrido de extremos,
+\texttt{temporal\_wm}, consultas LTJ/\texttt{leap}); en MAGISTER se acopla al
+vocabulario uiHRDC sin portar el grafo RDF ni los 18 tries del monorepo BGPs.
+El binario \texttt{meta\_trie\_edd} construye \textbf{un solo índice}:
+\texttt{time\_first\_trie} (modo \texttt{per-term} o \texttt{global}), usado para
+consulta, validación y serialización \texttt{.emt}.
+
+\paragraph{Notación y marco.}
+Por término $t$ (índice de posting list en el \texttt{.docs}; $t=0$ es la primera lista),
+$M_t\subseteq U\times T$ es el conjunto de postings $(u,\tau)$; el snapshot
+$S^\tau=\{u\mid(u,\tau)\in M_t\}$ coincide con Backbone~2.
+Tras \textbf{RLE en el eje $\tau$} (por cada par $(t,u)$, no sobre la lista de quads),
+cada $u$ aparece en intervalos half-open $[\tau_a,\tau_b)$: $u\in S^\tau$ iff
+$\tau_a\le\tau<\tau_b$.
+Un \emph{intervalo suelo} es un tramo $[\tau_a,\tau_b)$ donde $S^\tau$ no cambia;
+el barrido sobre extremos de todos los quads lo descubre (line sweep).
+La consulta objetivo es $(t,\tau)\mapsto S^\tau$; el índice almacena suelos +
+\texttt{temporal\_wm} (altas/bajas) y enumera masters con \texttt{leap}.
+
+\paragraph{Quads \texttt{spot\_quad}, carga del WM y validación.}
+Un quad $(t,u,0,\tau_a,\tau_b)$ fija el \emph{término} $t$, el \emph{master} $u$,
+el tercer componente en $0$ (reservado por el layout SPOT de CLTJ, sin rol en MAGISTER),
+y el intervalo temporal half-open $[\tau_a,\tau_b)$.
+En modo \texttt{per-term} el quad es $(u,0,0,\tau_a,\tau_b)$ porque $t$ queda implícito
+en el trie del término.
+El \texttt{temporal\_wm} codifica una secuencia ordenada \emph{time-first} de eventos
+insert/delete; con \texttt{leap} se recupera el valor indexado: solo $u$ si
+\texttt{n\_components}$=1$, o primero $t$ y luego $u$ si
+\texttt{n\_components}$=2$ (\texttt{global}).
+\texttt{validate\_index} relee el \texttt{.docs}, elige muchos instantes $\tau$ por
+término (bordes de intervalos y vecinos), calcula el conjunto esperado con la misma
+regla RLE (\texttt{expected\_masters}) y lo compara con \texttt{values\_at}$(t,\tau)$;
+\texttt{validation\_mismatches} es el número de pares $(t,\tau)$ discordantes.
+
+\paragraph{Entrada y salidas.}
+\textbf{Entrada:} el mismo \texttt{.docs} packed64 que el pipeline ZDD (wiki o sintético):
+\texttt{uint32 nlists}; por lista \texttt{uint32 len} y \texttt{len} postings \texttt{uint64}
+(layout \textbf{40+24}, $p=(u\ll 24)\mathrel{|}\tau$), alineado con
+\texttt{version\_packing.h} y \texttt{edd\_metatrie/packed64\_io.hpp}.
+\textbf{Salidas} de \texttt{edd\_metatrie/meta\_trie\_edd.cpp}
+($\approx 1.3\times 10^3$ líneas; \texttt{edd\_metatrie/build.sh}, SDSL en
+\texttt{\textasciitilde/include}, \texttt{-I} a BGPs y uiHRDC sin modificar el monorepo):
+\begin{center}
+\small
+\begin{tabular}{@{}lll@{}}
+\hline
+Salida & Contenido & Disco \\
+\hline
+\texttt{stdout}, \texttt{--csv} &
+  \texttt{bpi\_file}, \texttt{bpi\_total}, \texttt{build\_s},
+  \texttt{validation\_mismatches} &
+  no \\
+\texttt{--serialize *.emt} &
+  \texttt{time\_first\_trie}(s) serializado &
+  sí \\
+\texttt{--dump-dot} &
+  vista lógica suelos $\to$ $u$ (o $t\to u$) (figs.\ micro) &
+  opcional \\
+\hline
+\end{tabular}
+\end{center}
+
+\paragraph{Pipeline de construcción.}
+\begin{enumerate}
+\item \textbf{Lectura} (\texttt{inspect\_docs}, \texttt{read\_posting\_list}):
+      cabecera $\to$ listas $(u,\tau)$ por $t$.
+\item \textbf{RLE} (por defecto; \texttt{--no-rle} desactiva): \texttt{spot\_quad}
+      $(t,u,0,\tau_a,\tau_b)$ en \texttt{global};
+      $(u,0,0,\tau_a,\tau_b)$ en \texttt{per-term} ($t$ implícito).
+\item \textbf{Barrido} (\texttt{generate\_list\_of\_updates}): suelos + updates
+      (parche en $\tau_{\max}$).
+\item \textbf{Trie time-first} (\texttt{create\_time\_first\_trie}):
+      \texttt{edd::temporal\_wm} (fork \texttt{cltj\_temporal\_wm\_u64.hpp}, masters 64-bit;
+      parches \texttt{leap}/\texttt{leftmost}), arrays SDSL
+      (\texttt{TIME\_FIRST\_FULL\_INTERVALS}).
+\item \textbf{Consulta y validación:} \texttt{values\_at}$(t,\tau)$ $\to$
+      \texttt{values\_at\_version}; ground truth RLE del \texttt{.docs};
+      \texttt{validation\_mismatches}.
+\end{enumerate}
+
+\paragraph{Reutilización CLTJ vs aportes MAGISTER.}
+\begin{center}
+\scriptsize
+\begin{tabular}{@{}p{0.26\linewidth}p{0.36\linewidth}p{0.32\linewidth}@{}}
+\hline
+Componente & Origen BGPs / teoría & En \texttt{meta\_trie\_edd.cpp} \\
+\hline
+Barrido, build trie &
+  \texttt{cltj\_build\_compact\_tries.hpp} &
+  Adaptado; \texttt{is\_partial=false} \\
+WM temporal &
+  \texttt{cltj\_temporal\_wm.hpp}~\cite{Arroyuelo2026TemporalBGPs} &
+  Fork u64 + \texttt{edd\_cltj\_types.hpp}; copy/move SDSL en \texttt{per-term} \\
+18 tries, RDF &
+  Monorepo CLTJ completo &
+  No portado \\
+Pipeline \texttt{.docs}, modos, \texttt{.emt}, \texttt{--dump-dot} &
+  --- &
+  Aportes oct.~2026 (índice único; auxiliar ST[OP] retirado) \\
+\hline
+\end{tabular}
+\end{center}
+
+\paragraph{Modos \texttt{per-term} y \texttt{global}.}
+Misma semántica $(t,\tau)\mapsto S^\tau$; distinto empaquetado:
+\begin{center}
+\small
+\begin{tabular}{lcc}
+\hline
+ & \texttt{per-term} & \texttt{global} \\
+\hline
+Quads tras RLE & $(u,0,0,[\tau_a,\tau_b))$ & $(t,u,0,[\tau_a,\tau_b))$ \\
+Barrido & uno por $t$ & uno sobre todo el corpus \\
+Componentes WM & $u$ (\texttt{n\_components}$=1$) &
+  $t\to u$ (\texttt{n\_components}$=2$) \\
+Trie & $\approx V$ estructuras & uno; más sharing temporal \\
+Typical \texttt{bpi\_file} (wiki) & $\approx 6.0$ & $\approx 4.6$ \\
+\hline
+\end{tabular}
+\end{center}
+
+\paragraph{Consulta (\texttt{values\_at\_version}).}
+(1)~\texttt{interval\_seek}$(\tau)$;
+(2)~\texttt{last\_update} del suelo;
+(3)~\texttt{leap} --- enumera $u$ (o $t$ luego $u$ en \texttt{global}).
+
+\paragraph{Métrica BPI.}
+\texttt{bpi\_file}$=8\times\texttt{bytes\_total}/N$, $N=\texttt{n\_raw}$
+(mismo denominador que \texttt{bpi\_edd} en \texttt{plus\_t/utils/bpi.h}).
+\texttt{bpi\_total} coincide con \texttt{bpi\_file}.
+La metatrie \textbf{no} usa reordenamiento CUDD (§~\ref{subsec:optimize-cudd}).
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  node distance=5mm and 7mm,
+  box/.style={draw, rounded corners, align=center, font=\small,
+              minimum height=6.5mm, inner sep=3pt},
+  arr/.style={-{Stealth[length=2mm]}, thick}
+]
+  \node[box, fill=blue!8] (in) {\texttt{.docs} $\to$ $(u,\tau)$ por $t$};
+  \node[box, fill=orange!12, right=of in] (rle) {RLE en $\tau$ $\to$ quads};
+  \node[box, fill=orange!12, right=of rle] (sw) {suelos + updates};
+  \node[box, fill=orange!12, below=of sw] (wm) {\texttt{time\_first\_trie} + WM};
+  \node[box, fill=green!10, below=of wm] (out) {\texttt{.emt}, consulta, \texttt{bpi\_file}};
+  \draw[arr] (in) -- (rle) -- (sw) -- (wm) -- (out);
+\end{tikzpicture}
+\caption{Pipeline MAGISTER: un trie time-first por modo de build.}
+\label{fig:metatrie-pipeline}
+\end{figure}
+
+\paragraph{Ejemplo \texttt{micro\_metatrie.docs} ($t=0$).}
+Corpus \texttt{BGPs/micro\_metatrie.docs} (tres términos; el ejemplo numérico usa
+solo la lista $t=0$): masters $1$ en $\tau\in\{1,2,3,4\}$; $2$ en $\{3,4,5,6\}$;
+$3$ en $\{5,6,7\}$. Tras RLE: $1:[1,5)$, $2:[3,7)$, $3:[5,8)$; extremos
+$\{1,3,5,7,8\}$ $\Rightarrow$ cuatro suelos (Tab.~\ref{tab:micro-ground}).
+En $\tau=4$, $S^4=\{1,2\}$; \texttt{values\_at\_version}$(4)$ ubica el suelo
+$[3,5)$ y enumera con \texttt{leap}.
+\texttt{scripts/viz\_metatrie\_intervals.py} dibuja barras $[\tau_a,\tau_b)$ por $u$;
+\texttt{meta\_trie\_edd --dump-dot} recorre el trie medido
+(Figs.~\ref{fig:metatrie-micro-intervalos}--\ref{fig:metatrie-micro-global}).
+
+\begin{table}[htbp]
+\centering
+\caption{Intervalos suelo del ejemplo \texttt{micro\_metatrie} ($t=0$).}
+\label{tab:micro-ground}
+\small
+\begin{tabular}{c|cccc}
+$[\tau_a,\tau_b)$ & $[1,3)$ & $[3,5)$ & $[5,7)$ & $[7,8)$ \\ \hline
+$S^\tau$ & $\{1\}$ & $\{1,2\}$ & $\{2,3\}$ & $\{3\}$
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\linewidth]{img/metatrie_micro_term0.png}
+\caption{Trie medido (\texttt{per-term}): $t=0$ de \texttt{micro\_metatrie.docs}.}
+\label{fig:metatrie-micro-intervalos}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=1.05\linewidth]{img/metatrie_micro_global.png}
+\caption{Trie medido (\texttt{global}): tres términos; componentes WM $t\to u$.}
+\label{fig:metatrie-micro-global}
+\end{figure}
+
+\newpage
+
+\subsection{Corpus sintético versionado}
+\label{subsec:synthetic}
+
+El corpus Wikipedia fija el parser pero no aísla de forma económica el eje temporal,
+el universo de documentos, el modelo de evolución de conjuntos ni la escala de postings.
+Se implementó un generador reproducible que produce el \emph{mismo} formato de entrada
+que uiHRDC y Backbone~2.
+
+\paragraph{Semántica.}
+Por término $t$, la posting list almacena pares $(u,\tau)$ con $u\in U$, $\tau\in T$.
+Equivale a la membresía $M_t\subseteq U\times T$. En vista \textbf{snapshot}
+(snapshots $S^\tau$, la de Backbone~2): $u\in S^\tau \Leftrightarrow (u,\tau)\in M_t$.
+Tras \textbf{RLE} sobre $\tau$, cada master $u$ aparece como intervalos half-open
+$[\tau_a,\tau_b)$; esa vista es la que materializa la metatrie (§~\ref{sec:metatrie}).
+
+\paragraph{Generación (\texttt{generar\_docs\_versionados\_sinteticos.py}).}
+\begin{itemize}
+\item \textbf{Layout:} packed64 vía \texttt{packed64\_layout.py} (40+24 bits, alineado con
+      \texttt{version\_packing.h}).
+\item \textbf{Por término} se muestrean: universo $U_t$ (fijo o log-uniforme en
+      $[U_{\min},U_{\max}]$); número de versiones $V_{\mathrm{ver},t}$ (fijo o uniforme);
+      cardinalidad inicial (Zipf o constante).
+\item \textbf{Evolución temporal} (snapshots $S^0,\ldots,S^{V_{\mathrm{ver}}-1}$):
+      \texttt{sparse} (borrados Bernoulli sobre activos + altas con ratio \texttt{add\_ratio}), o
+      \texttt{toggle} (ventana de tamaño \texttt{toggle\_window}; cada doc de la ventana
+      cambia de estado con probabilidad \texttt{toggle\_prob}).
+\item \textbf{Serialización:} cada snapshot $S^\tau$ se expande a postings $(u,\tau)$;
+      se escribe \texttt{.docs} + \texttt{.voc} (\texttt{syn\_term\_*}).
+\item \textbf{Reproducibilidad:} \texttt{SeedSequence(seed)}; barrido con \texttt{seed=20250920}.
+      Estimación previa de postings aborta si supera \texttt{--max-postings} (salvo \texttt{--force}).
+\end{itemize}
+
+\paragraph{Barrido ZDD (\texttt{sweep\_synthetic\_zdd\_limits.sh}).}
+Política en $\approx 8$~GiB RAM:
+\emph{generar $\to$ build \texttt{u+t} (sin optimize) $\to$ medir $\to$ borrar}
+(\texttt{KEEP\_DATASETS=0}).
+Fases \texttt{SCALE=med}:
+\textbf{S} escalera de tamaño; \textbf{A} escalera de $U$; \textbf{B} escalera de $V_{\mathrm{ver}}$;
+\textbf{C} matriz \texttt{sparse|toggle} $\times$ \texttt{zipf|constant}.
+Recetas JSON en \texttt{datos\_sinteticos/recipes/}; CSV \texttt{sweep\_results.csv}.
+Techos: \texttt{SIZE\_SAFE}=\texttt{12000:100:58}; \texttt{U\_SAFE}$=2^{22}$; \texttt{V\_SAFE}$=80$.
+
+\paragraph{Resultados ZDD (baseline \texttt{u+t}).}
+Tabla~\ref{tab:synthetic-zdd}: 19 celdas (18 OK, 1 OOM).
+En escala \texttt{med}, \texttt{bpi\_edd} sin reordenar ($\sim 55$--$149$~bpi)
+supera ampliamente al wiki 1--2~GB post-optimize (Tab.~\ref{tab:optimize-2gb}):
+el sintético densifica cambios temporales por diseño.
+
+% --- Insertar aquí Tabla~\ref{tab:synthetic-zdd} (tu versión completa) ---
+
+\subsection{Resultados experimentales}
+\label{subsec:metatrie-results}
+
+Sobre las 18 recetas sintéticas OK de Tabla~\ref{tab:synthetic-zdd},
+\texttt{sweep\_metatrie\_from\_recipes.sh} regenera cada \texttt{.docs}, ejecuta
+\texttt{meta\_trie\_edd} (\texttt{global} y \texttt{per-term}), valida
+(\texttt{--validate-terms 20}) y borra el corpus.
+Salida: \texttt{datos\_sinteticos/metatrie\_results.csv}; \textbf{0 mismatches}
+(\texttt{validation\_mismatches} sobre el trie).
+
+\paragraph{Observaciones (sintético).}
+\begin{itemize}
+\item A igual $N$, \texttt{bpi\_file} metatrie ($\sim 2.7$--$5.5$~bpi en \texttt{per-term};
+      $\sim 4.2$--$8.5$~bpi en \texttt{global})
+      es uno--dos órdenes de magnitud menor que \texttt{bpi\_edd} ZDD baseline
+      ($\sim 55$--$149$~bpi en Tab.~\ref{tab:synthetic-zdd}).
+\item En las 18 recetas, \texttt{per-term} obtiene siempre menor \texttt{bpi\_file} que
+      \texttt{global} (p.\,ej.\ $N=74{,}2$\,M en \texttt{S\_t12000}: $2.91$ vs $4.58$~bpi).
+      En wiki 2~GB ocurre lo contrario: \texttt{global} gana ($4.56$ vs $6.00$; Tab.~\ref{tab:metatrie-wiki-2gb}).
+\item El peor ZDD sintético (\texttt{C\_sparse\_zipf\_fixed}, 148.8~bpi) tiene metatrie
+      $\approx 3.27$ / $5.01$~bpi (PT/GL).
+\item En \texttt{C\_toggle\_zipf\_fixed} ($N\approx 54$\,M), metatrie $\approx 3.53$ /
+      $5.52$~bpi (PT/GL) frente al mismo baseline ZDD de Tab.~\ref{tab:synthetic-zdd}
+      ($106.05$~bpi).
+\end{itemize}
+
+\begin{table}[htbp]
+\centering
+\caption{Metatrie sobre las 18 recetas sintéticas OK (\texttt{bpi\_file}; $N=\texttt{n\_raw}$).
+ZDD: \texttt{bpi\_edd} baseline \texttt{u+t} sin optimize (Tab.~\ref{tab:synthetic-zdd}).
+Corrida \texttt{20261009}; \texttt{validation\_mismatches}$=0$.}
+\label{tab:metatrie-results}
+\scriptsize
+\begin{tabular}{@{}l r r r r@{}}
+\hline
+Stem & $N$ & ZDD & MT PT & MT GL \\
+\hline
+\texttt{S_t2000_v40_c40_u2097152} & 3\,932\,912 & 114.82 & 5.49 & 8.34 \\
+\texttt{S_t5000_v60_c50_u2097152} & 16\,842\,650 & 112.86 & 4.01 & 6.23 \\
+\texttt{S_t8000_v80_c50_u2097152} & 36\,785\,262 & 106.89 & 3.38 & 5.25 \\
+\texttt{S_t12000_v100_c58_u2097152} & 74\,232\,774 & 105.73 & 2.91 & 4.58 \\
+\texttt{A_u4194304_t12000_v100} & 74\,231\,334 & 105.71 & 3.02 & 4.79 \\
+\texttt{A_u1048576_t12000_v100} & 74\,231\,500 & 105.75 & 2.81 & 4.36 \\
+\texttt{A_u2097152_t12000_v100} & 74\,232\,774 & 105.73 & 2.91 & 4.58 \\
+\texttt{A_u524288_t12000_v100} & 74\,234\,541 & 105.68 & 2.70 & 4.15 \\
+\texttt{B_u4194304_t12000_v40} & 25\,944\,453 & 122.73 & 5.48 & 8.53 \\
+\texttt{B_u4194304_t12000_v80} & 57\,436\,453 & 109.59 & 3.45 & 5.44 \\
+\texttt{C_sparse_zipf_var_t12000} & 23\,301\,646 & 148.14 & 4.48 & 6.74 \\
+\texttt{C_sparse_constant_var_t12000} & 30\,008\,936 & 56.43 & 4.42 & 6.68 \\
+\texttt{C_toggle_zipf_var_t12000} & 31\,466\,344 & 112.44 & 4.75 & 7.35 \\
+\texttt{C_toggle_constant_var_t12000} & 33\,356\,857 & 66.76 & 4.49 & 6.92 \\
+\texttt{C_sparse_zipf_fixed_t12000} & 37\,706\,506 & 148.85 & 3.27 & 5.01 \\
+\texttt{C_sparse_constant_fixed_t12000} & 47\,883\,468 & 55.15 & 3.31 & 5.01 \\
+\texttt{C_toggle_zipf_fixed_t12000} & 54\,182\,266 & 106.05 & 3.53 & 5.52 \\
+\texttt{C_toggle_constant_fixed_t12000} & 54\,754\,024 & 65.31 & 3.37 & 5.22 \\
+\hline
+\end{tabular}
+\end{table}
+
+
+\paragraph{Corpus wiki 2~GB (texto real).}
+Pack \texttt{wiki\_2gb\_uihrdc\_packed64.docs} ($N=122\,197\,799$, $V=250\,550$,
+$T_{\max}=4\,042$, $U_{\max}=4\,326$).
+\textbf{Corrida índice único} (2026-10-04): parches barrido/WM/SDSL; ST[OP] auxiliar
+retirado; \texttt{--validate-terms 200}, \texttt{validation\_mismatches}$=0$
+en \texttt{per-term} y \texttt{global}.
+Logs/CSV: \texttt{resultados\_test/meta\_trie\_edd\_wiki\_2gb\_single\_index\_*.log}.
+
+\begin{table}[htbp]
+\centering
+\caption{Metatrie en wiki 2~GB ($N=122\,197\,799$). \texttt{bpi\_total}$=$\texttt{bpi\_file}.
+\texttt{build\_s}: solo construcción del trie; \textbf{wall}: build + validación 200 términos
+(corrida \texttt{20261004}). ZDD: \texttt{bpi\_edd} baseline sin optimize (Tab.~\ref{tab:bpi-ladder}).}
+\label{tab:metatrie-wiki-2gb}
+\small
+\begin{tabular}{l r r r r l}
+\hline
+Modo & MiB trie & \texttt{bpi\_file} & \texttt{build\_s} & wall & ZDD ref. \\
+\hline
+\texttt{per-term} & 87.4 & 5.996 & 13.7\,s & 30.2\,s & 35.21 (\texttt{u+t}) \\
+\texttt{global}   & 66.5 & 4.563 & 48.0\,s & 62.6\,s & 35.47 (\texttt{log}) \\
+\hline
+\end{tabular}
+\end{table}
+
+\paragraph{Observaciones (wiki).}
+\begin{itemize}
+\item Frente a ZDD post-optimize (\texttt{bpi\_edd}$\approx 29.4$~bpi, Tab.~\ref{tab:optimize-2gb}),
+      $\mathrm{MT}/\mathrm{ZDD}$ sobre \texttt{bpi\_file} es $\approx 5$--$6\times$
+      (\texttt{per-term}) y $\approx 6.4\times$ (\texttt{global}).
+\item \texttt{global} gana en \texttt{bpi\_file} frente a \texttt{per-term} (4.56 vs 6.00);
+      el \texttt{build\_s} del barrido único domina frente al build por término, pero el
+      \emph{wall} total con validación 200 sigue en el orden de decenas de segundos en la
+      corrida canónica.
+\item El contraste con ZDD usa \texttt{bpi\_file} (representación por intervalos) frente a
+      \texttt{bpi\_edd} (nodos CUDD); no son encodings equivalentes, pero comparten $N$.
+\end{itemize}
+
+\subsection{Flujo end-to-end, llamadas y ejecución}
+\label{subsec:metatrie-end-to-end}
+
+\paragraph{Dependencias y alcance.}
+El camino activo usa \texttt{meta\_trie\_edd.cpp},
+\texttt{edd\_cltj\_types.hpp}, \texttt{packed64\_io.hpp},
+\texttt{cltj\_temporal\_wm\_u64.hpp}, SDSL/divsufsort y la fórmula BPI de
+\texttt{plus\_t/utils/bpi.h}. No construye el grafo RDF, los 18 tries de CLTJ,
+el antiguo ST[OP] auxiliar ni un ZDD/CUDD. Tampoco materializa todos los
+snapshots: conserva intervalos suelo, el prefijo de updates vigente y el WM.
+La rama heredada \texttt{is\_partial} permanece en el fork, pero MAGISTER
+siempre la invoca con \texttt{false}.
+
+\paragraph{Flujo de construcción.}
+La secuencia real de llamadas es:
+\begin{enumerate}
+\item \texttt{main} llama \texttt{parse\_args} e \texttt{inspect\_docs}.
+      Este último lee \texttt{nlists}, offsets, número de postings y máximos de
+      master/versión.
+\item Según el modo, \texttt{build\_global} acumula todas las listas en un
+      vector de quads, mientras \texttt{build\_per\_term} procesa y almacena
+      un trie por término.
+\item \texttt{read\_posting\_list} carga una lista; por defecto,
+      \texttt{postings\_to\_quads\_rle} fusiona versiones consecutivas del
+      mismo master. Con \texttt{--no-rle} se llama
+      \texttt{postings\_to\_quads\_point} y se genera un quad
+      $[\tau,\tau+1)$ por posting.
+\item \texttt{generate\_list\_of\_updates} transforma los extremos
+      $\tau_a/\tau_b$ en altas/bajas y en intervalos suelo.
+\item \texttt{create\_time\_first\_trie} construye los arrays de suelos,
+      \texttt{last\_update\_pos}, ordena los eventos \emph{time-first} e
+      instancia \texttt{temporal\_wm}. Este último construye B/E mediante
+      \texttt{generate\_B\_E\_stable\_prefix\_sort}.
+\item Terminado el build, \texttt{scan\_docs\_metrics},
+      \texttt{size\_report} y \texttt{print\_size\_report} calculan bytes y
+      $\texttt{bpi\_file}=8\,\texttt{bytes\_total}/\texttt{n\_raw}$.
+\item Finalmente, \texttt{validate\_index} compara
+      \texttt{values\_at} contra \texttt{expected\_masters} en bordes de
+      intervalos y versiones vecinas. Un desacuerdo produce código de salida 2.
+\end{enumerate}
+
+\paragraph{Flujo de consulta.}
+\texttt{values\_at}$(t,\tau)$ ejecuta
+\texttt{interval\_seek} para localizar el suelo, comprueba
+\texttt{version\_in\_interval}, obtiene el prefijo $p_l$ con
+\texttt{get\_last\_update\_of\_interval} y llama
+\texttt{temporal\_successor}, que delega en \texttt{temporal\_wm::leap}.
+En \texttt{global}, el primer \texttt{leap} salta directamente a $t$ y
+\texttt{append\_masters\_at} enumera $u$ en el segundo componente. En
+\texttt{per-term}, se selecciona \texttt{per\_term[t]} y se enumeran masters
+en su único componente. \texttt{leftmost} se usa cuando el valor buscado no
+existe y debe hallarse el siguiente sucesor activo.
+
+\paragraph{Funciones opcionales o fuera del camino crítico.}
+\texttt{sample\_queries} y \texttt{run\_query\_bench} solo se ejecutan con
+\texttt{--bench-queries}; el muestreo recorre términos \emph{round-robin}.
+\texttt{dump\_trie\_dot} y \texttt{arrays\_debug} solo se usan con
+\texttt{--dump-dot}. La serialización solo se activa con
+\texttt{--serialize}; las funciones \texttt{load} existen, pero la CLI actual
+no carga archivos \texttt{.emt}. \texttt{pack\_master\_rel} es un helper para
+generadores/tests: el binario solo desempaqueta. \texttt{rank\_range\_E} está
+heredado, pero la navegación vigente consulta E directamente.
+\texttt{m\_last\_update\_select1} se conserva y contabiliza por compatibilidad
+CLTJ, aunque la consulta lee \texttt{m\_last\_update\_pos}.
+
+\paragraph{Compilación y ejecución.}
+\begin{verbatim}
+cd /root/MAGISTER
+./edd_metatrie/build.sh
+
+# Smoke test per-term
+edd_metatrie/meta_trie_edd per-term BGPs/micro_metatrie.docs \
+  --validate-terms 3 --csv resultados_test/micro_per_term.csv
+
+# Smoke test global
+edd_metatrie/meta_trie_edd global BGPs/micro_metatrie.docs \
+  --validate-terms 3 --csv resultados_test/micro_global.csv
+
+# Bench de Q_tau
+edd_metatrie/meta_trie_edd global BGPs/micro_metatrie.docs \
+  --validate-terms 3 --bench-queries 30 --bench-reps 10 \
+  --bench-csv resultados_test/micro_bench_global.csv \
+  --bench-queries-out resultados_test/micro_queries.csv
+
+# Serializar
+edd_metatrie/meta_trie_edd global BGPs/micro_metatrie.docs \
+  --validate-terms 3 --serialize resultados_test/micro_global.emt
+
+# DOT (solo corpus pequeno)
+edd_metatrie/meta_trie_edd per-term BGPs/micro_metatrie.docs \
+  --validate-terms 3 --dump-term 0 \
+  --dump-dot resultados_test/micro_term0.dot
+dot -Tpng resultados_test/micro_term0.dot \
+  -o resultados_test/micro_term0.png
+\end{verbatim}
+La ejecución correcta debe terminar con
+\texttt{validation\_mismatches=0}. \texttt{--max-terms N} recorta tanto el
+índice como sus denominadores; por ello solo deben compararse corridas con el
+mismo límite. La guía operacional completa está en
+\texttt{docs/METATRIE\_FLUJO\_END\_TO\_END.md}.
+
+\paragraph{Limitaciones metodológicas.}
+\begin{itemize}
+\item Un índice (\texttt{time\_first\_trie}); \texttt{bpi\_total}$=$\texttt{bpi\_file}.
+\item Validación por muestreo: sintético 20 términos/receta; wiki 200 términos
+      (\texttt{single\_index}); no recorre todo el vocabulario en cada corrida.
+\item \texttt{bpi\_over\_stored} del binario metatrie usa \texttt{n\_pairs\_uniq} local;
+      no es idéntico a \texttt{n\_snap\_elems} del escaneo ZDD.
+\item Latencia de consulta y updates incrementales quedan fuera del alcance de esta fase.
+\end{itemize}

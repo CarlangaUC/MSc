@@ -15,7 +15,7 @@
 
 **Entrada común:** `.docs` packed64 — `u64 = (master << 24) | rel`, cabecera `[u32 nlists][por lista: u32 len, u64…]`.
 
-**Objetivo experimental:** misma membresía \(M\), comparar **BPI** (\(8\times\) bytes \(/\, n_{\mathrm{raw}}\)) y validar consultas \((t,\tau)\mapsto S^\tau\). No incluye (aún) latencia de consulta ni updates incrementales.
+**Objetivo experimental:** misma membresía \(M\), comparar **BPI** (\(8\times\) bytes \(/\, n_{\mathrm{raw}}\)) y validar consultas \((t,\tau)\mapsto S^\tau\). Latencia \(Q_\tau\): ver [`edd_metatrie/README.md`](../edd_metatrie/README.md) §benchmark y `scripts/bench_query_tau.sh`. Updates incrementales: aún no.
 
 **Referencia teórica BGPs / CLTJ:** Arroyuelo et al., grafos temporales (quads half-open, `temporal_wm`, LTJ/`leap`).  
 **SDSL / estructuras compactas:** Navarro & Ferrada, *Compact Data Structures* (si se cita el WM).

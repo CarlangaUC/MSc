@@ -25,6 +25,7 @@
 //   heuristics-check u+t|log [out_dir]
 // =============================================================================
 
+#include "cmd/bench_qmem.h"
 #include "cmd/build.h"
 #include "cmd/heuristics_check.h"
 #include "cmd/load.h"
@@ -47,6 +48,7 @@ int main(int argc, char* argv[]) {
     if (mode == "verify") return cmdVerify(argc, argv);
     if (mode == "demo") return cmdDemo(argc, argv);
     if (mode == "heuristics-check") return cmdHeuristicsCheck(argc, argv);
+    if (mode == "bench-qmem") return cmdBenchQmem(argc, argv);
     std::cerr << "Modo desconocido: " << mode << std::endl;
     usage(argv[0]);
     return 1;

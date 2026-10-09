@@ -55,7 +55,7 @@ Detalle LaTeX: [`METATRIE_TESIS.md`](METATRIE_TESIS.md).
 1. **Un índice:** trie time-first; validación sobre el mismo objeto que `bpi_file`.
 2. **`bpi_over_stored` metatrie ≠ `n_snap_elems` ZDD** (denominadores distintos).
 3. **Global wiki:** build ~45 s; validación 200 términos ~20 min wall.
-4. Sin benchmarks de consulta ni updates incrementales.
+4. Latencia \(Q_\tau\) wiki 2 GB **índice completo**: metatrie global ~5 µs, per-term ~3.6 µs vs docs_scan ~8–9 µs (`scripts/run_bench_wiki2gb_full.sh`). Sin updates incrementales.
 
 Parches locales vs BGPs: `METATRIE_TESIS.md` §3.3.
 

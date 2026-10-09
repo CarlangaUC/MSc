@@ -27,12 +27,15 @@ inline constexpr uint64_t kMasterMask =
 inline constexpr uint64_t kRelMask = (kRelBits >= 64) ? ~0ULL : ((1ULL << kRelBits) - 1ULL);
 inline constexpr uint64_t kMasterShift = kRelBits;
 
+// Master = bits altos del u64 packed64 (default 40).
 inline uint64_t unpack_master(uint64_t packed) {
     return (packed >> kMasterShift) & kMasterMask;
 }
 
+// Versión τ = bits bajos del packed64 (default 24).
 inline uint64_t unpack_relative(uint64_t packed) { return packed & kRelMask; }
 
+// Empaqueta (master, τ) y rechaza overflow de bits.
 inline uint64_t pack_master_rel(uint64_t master, uint64_t rel) {
     if ((master & ~kMasterMask) != 0) {
         throw std::out_of_range("master exceeds ZDD_MASTER_BITS=" + std::to_string(kMasterBits));
@@ -43,6 +46,7 @@ inline uint64_t pack_master_rel(uint64_t master, uint64_t rel) {
     return (master << kMasterShift) | rel;
 }
 
+// Bits necesarios para codificar `value` en el WM.
 inline uint32_t bits_required_u64(uint64_t value) {
     if (value == 0) return 1;
     uint32_t bits = 0;

@@ -214,6 +214,10 @@ static void usage(const char* prog) {
         << "  " << prog << " verify u+t|log <docs> <voc> <tmp.zpack> [max_terms]  (consultas build+loaded+parity)\n"
         << "  " << prog << " demo   u+t|log [out_dir]\n"
         << "  " << prog << " heuristics-check u+t|log [out_dir]\n"
+        << "  " << prog
+        << " bench-qmem u+t|log <docs> <queries.csv> [max_terms] [reps] [out.csv]\n"
+        << "  " << prog
+        << " bench-qmem u+t|log <docs> <queries.csv> --pack <in.zpack> [reps] [out.csv]\n"
         << "\n"
         << "  Codificacion del tag (F_t + {codificacion}):\n"
         << "    u+t  — tag canonico {u+t}: 1 var CUDD por termino (u+i)\n"
